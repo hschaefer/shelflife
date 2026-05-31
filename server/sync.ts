@@ -272,9 +272,15 @@ export async function syncLibraryIncremental(libraryId: string): Promise<void> {
 /**
  * Delta-sync listening sessions history
  */
-export async function syncSessions(): Promise<void> {
+export async function syncSessions(forceFull = false): Promise<void> {
   const db = getDatabase();
-  console.log(`[Sync] Starting sync of listening sessions...`);
+  
+  // Check if we ever completed a full sessions sync
+  const fullSyncCompletedRow = db.prepare("SELECT value FROM sync_meta WHERE key = 'sessions_full_sync_completed'").get() as { value: string } | undefined;
+  const isFirstSessionsSync = !fullSyncCompletedRow || fullSyncCompletedRow.value !== 'true';
+  const runFull = forceFull || isFirstSessionsSync;
+
+  console.log(`[Sync] Starting sync of listening sessions (mode: ${runFull ? 'FULL' : 'INCREMENTAL'})...`);
   
   const headers = getAuthHeaders();
   let page = 0;
@@ -303,7 +309,7 @@ export async function syncSessions(): Promise<void> {
     const response = await axios.get(url, {
       headers,
       params: {
-        limit,
+        itemsPerPage: limit,
         page,
         sort: 'startedAt',
         desc: 1
@@ -320,14 +326,10 @@ export async function syncSessions(): Promise<void> {
     let stopIncremental = false;
 
     for (const session of sessionsData) {
-      // Check if session already exists
-      const cached = db.prepare('SELECT updated_at FROM sessions WHERE id = ?').get(session.id) as { updated_at: number } | undefined;
-      
-      // If we already have the session in the cache
-      if (cached) {
-        // If it's an active/open session, it might have been updated.
-        // If the updatedAt in cache matches the fetched session, we have reached the end of new data
-        if (cached.updated_at === session.updatedAt) {
+      // If we are doing incremental sync, check if we already have it
+      if (!runFull) {
+        const cached = db.prepare('SELECT updated_at FROM sessions WHERE id = ?').get(session.id) as { updated_at: number } | undefined;
+        if (cached && cached.updated_at === session.updatedAt) {
           stopIncremental = true;
           break;
         }
@@ -370,6 +372,13 @@ export async function syncSessions(): Promise<void> {
     INSERT OR REPLACE INTO sync_meta (key, value)
     VALUES ('last_sessions_sync', ?)
   `).run(String(Date.now()));
+
+  if (runFull) {
+    db.prepare(`
+      INSERT OR REPLACE INTO sync_meta (key, value)
+      VALUES ('sessions_full_sync_completed', 'true')
+    `).run();
+  }
 
   console.log(`[Sync] Sessions sync completed. Upserted ${addedCount} sessions.`);
 }
@@ -414,7 +423,7 @@ export async function syncAll(forceFull = false): Promise<void> {
 
     // 3. Sync sessions history
     try {
-      await syncSessions();
+      await syncSessions(forceFull);
     } catch (err: any) {
       console.error('[Sync] Failed to sync sessions:', err.message);
     }

@@ -248,7 +248,7 @@ export function apiRouter(): Router {
     try {
       const db = getDatabase();
       const page = parseInt(req.query.page as string, 10) || 0;
-      const limit = parseInt(req.query.limit as string, 10) || 100;
+      const limit = parseInt(req.query.limit as string, 10) || parseInt(req.query.itemsPerPage as string, 10) || 100;
       const offset = page * limit;
 
       const rows = db.prepare(`

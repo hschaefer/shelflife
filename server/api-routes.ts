@@ -1,7 +1,7 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import axios from 'axios';
 import { getDatabase } from './db.js';
-import { syncAll } from './sync.js';
+import { syncAll, syncLibraryFull, syncLibraryIncremental } from './sync.js';
 
 function getAuthHeaders(): Record<string, string> {
   const headers: Record<string, string> = {};
@@ -28,6 +28,7 @@ function getAbsUrl(endpoint: string): string {
 
 export function apiRouter(): Router {
   const router = Router();
+  router.use(express.json());
 
   // GET /api/libraries - Passthrough to ABS
   router.get('/libraries', async (req, res) => {
@@ -608,15 +609,25 @@ export function apiRouter(): Router {
   // POST /api/sync - Trigger manual scan/sync
   router.post('/sync', async (req, res) => {
     try {
-      console.log('[Sync API] Manual sync triggered via endpoint.');
+      const { libraryId, forceFull } = req.body || {};
       
-      // Fire background sync without awaiting so response is instant
-      syncAll(true).catch(err => {
-        console.error('[Sync API] Background sync failed:', err);
-      });
-
-      res.json({ success: true, message: 'Synchronization cycle triggered in background' });
+      if (libraryId) {
+        console.log(`[Sync API] Targeted awaited sync triggered for library: ${libraryId} (forceFull: ${!!forceFull})`);
+        if (forceFull) {
+          await syncLibraryFull(libraryId);
+        } else {
+          await syncLibraryIncremental(libraryId);
+        }
+        res.json({ success: true, message: `Sync completed for library ${libraryId}` });
+      } else {
+        console.log('[Sync API] Manual sync triggered via endpoint.');
+        syncAll(!!forceFull).catch(err => {
+          console.error('[Sync API] Background sync failed:', err);
+        });
+        res.json({ success: true, message: 'Synchronization cycle triggered in background' });
+      }
     } catch (err: any) {
+      console.error('[Sync API] Synchronous sync failed:', err.message);
       res.status(500).json({ error: 'Failed to initiate synchronization' });
     }
   });

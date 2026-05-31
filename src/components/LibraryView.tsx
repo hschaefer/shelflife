@@ -371,13 +371,18 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
           if (isScanActive && elapsed < maxDuration) {
             setTimeout(pollScanStatus, pollInterval);
           } else {
-            // Scan finished or timed out - do one final sync and stop spinner
+            // Scan finished or timed out - trigger targeted incremental sync
+            await api.triggerSync(libId, false).catch(err => {
+              console.error("Failed to sync library cache:", err);
+            });
+            // Do one final fetch of updated items and stop spinner
             await fetchLibraryBooks();
             setIsRescanning(false);
           }
         } catch (err) {
           console.error("Error during scan polling:", err);
-          // Fallback: do a final fetch and stop spinning
+          // Fallback: trigger cache sync and reload
+          await api.triggerSync(libId, false).catch(() => null);
           await fetchLibraryBooks();
           setIsRescanning(false);
         }

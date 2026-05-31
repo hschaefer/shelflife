@@ -351,9 +351,9 @@ class ApiClient {
     return this.provider.getSyncStatus();
   }
 
-  public async triggerSync() {
+  public async triggerSync(libraryId?: string, forceFull = false) {
     if (!this.provider) throw new Error("Provider not initialized");
-    return this.provider.triggerSync();
+    return this.provider.triggerSync(libraryId, forceFull);
   }
 }
 

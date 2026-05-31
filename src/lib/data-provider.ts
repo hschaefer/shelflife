@@ -39,7 +39,7 @@ export interface DataProvider {
   getUserStats(): Promise<UserStats[]>;
   getDashboardStats(timeframe?: string): Promise<any>;
   getSyncStatus(): Promise<SyncStatus | null>;
-  triggerSync(): Promise<any>;
+  triggerSync(libraryId?: string, forceFull?: boolean): Promise<any>;
 
   // Direct pass-through controls
   getItemDetails(itemId: string): Promise<any>;

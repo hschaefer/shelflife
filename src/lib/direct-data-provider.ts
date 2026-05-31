@@ -527,11 +527,19 @@ export class DirectDataProvider implements DataProvider {
     };
   }
 
-  public async triggerSync(): Promise<any> {
-    // Run full sync locally for all libraries in direct mode
-    const libraries = await this.getLibraries();
-    for (const lib of libraries) {
-      await this.runFullSync(lib.id);
+  public async triggerSync(libraryId?: string, forceFull = false): Promise<any> {
+    if (libraryId) {
+      if (forceFull) {
+        await this.runFullSync(libraryId);
+      } else {
+        await this.runIncrementalSync(libraryId);
+      }
+    } else {
+      // Run full sync locally for all libraries in direct mode
+      const libraries = await this.getLibraries();
+      for (const lib of libraries) {
+        await this.runFullSync(lib.id);
+      }
     }
     return { success: true };
   }

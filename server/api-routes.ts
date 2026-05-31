@@ -650,10 +650,8 @@ export function apiRouter(): Router {
       const lastSessionsSync = metaRow ? parseInt(metaRow.value, 10) : null;
 
       let lastSync = 0;
-      let totalCachedItems = 0;
 
       for (const state of libStates) {
-        totalCachedItems += state.total_items || 0;
         const stateSync = Math.max(state.last_full_sync || 0, state.last_incremental_sync || 0);
         if (stateSync > lastSync) {
           lastSync = stateSync;
@@ -664,9 +662,17 @@ export function apiRouter(): Router {
         lastSync = lastSessionsSync;
       }
 
+      // Count actual cached items
+      const itemsCachedRes = db.prepare('SELECT COUNT(*) as count FROM library_items').get() as { count: number };
+      const itemsCached = itemsCachedRes ? itemsCachedRes.count : 0;
+
+      const sessionsCachedRes = db.prepare('SELECT COUNT(*) as count FROM sessions').get() as { count: number };
+      const sessionsCached = sessionsCachedRes ? sessionsCachedRes.count : 0;
+
       res.json({
         lastSync,
-        itemsCached: totalCachedItems,
+        itemsCached,
+        sessionsCached,
         libraries: libStates.map(s => ({
           libraryId: s.library_id,
           lastSync: Math.max(s.last_full_sync || 0, s.last_incremental_sync || 0),

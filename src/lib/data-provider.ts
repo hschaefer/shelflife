@@ -20,6 +20,7 @@ export interface LibraryItemsResponse {
 export interface SyncStatus {
   lastSync: number;
   itemsCached: number;
+  sessionsCached?: number;
   libraries: Array<{
     libraryId: string;
     lastSync: number;

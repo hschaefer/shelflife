@@ -528,6 +528,7 @@ export class DirectDataProvider implements DataProvider {
     return {
       lastSync: this.syncState['global']?.lastSync || Date.now(),
       itemsCached: (await this.db.getAllItems()).length,
+      sessionsCached: 0,
       libraries: []
     };
   }

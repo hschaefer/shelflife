@@ -1,21 +1,70 @@
-import { Power, ShieldCheck, Sun, Moon } from "lucide-react";
+import { Power, ShieldCheck, Sun, Moon, Database, BookOpen, History, RefreshCw, CheckCircle2, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { format } from "date-fns";
 import { api } from "../lib/api";
 import { cn } from "../lib/utils";
 import packageJson from "../../package.json";
 import { Capacitor } from "@capacitor/core";
-
 
 interface SettingsViewProps {
   onDisconnect?: () => void;
   onHeadersSaved?: () => void;
   darkMode?: boolean;
   setDarkMode?: (dark: boolean) => void;
+  syncStatus?: any;
+  onSyncComplete?: (newStatus: any) => Promise<void>;
 }
 
-export function SettingsView({ onDisconnect, darkMode = false, setDarkMode }: SettingsViewProps) {
+export function SettingsView({ 
+  onDisconnect, 
+  darkMode = false, 
+  setDarkMode,
+  syncStatus,
+  onSyncComplete
+}: SettingsViewProps) {
   const config = api.getConfig();
   const isDirect = api.isDirectMode();
   const isNative = Capacitor.isNativePlatform();
+
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isSyncSuccess, setIsSyncSuccess] = useState(false);
+  const [localSyncStatus, setLocalSyncStatus] = useState<any>(syncStatus);
+
+  useEffect(() => {
+    setLocalSyncStatus(syncStatus);
+  }, [syncStatus]);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    setIsSyncSuccess(false);
+    try {
+      // Trigger full sync
+      await api.triggerSync(undefined, false, true);
+      // Retrieve fresh status
+      const freshStatus = await api.getSyncStatus();
+      setLocalSyncStatus(freshStatus);
+      setIsSyncSuccess(true);
+      // Callback to reload all application stats/data
+      if (onSyncComplete) {
+        await onSyncComplete(freshStatus);
+      }
+      // Keep success state for 3 seconds
+      setTimeout(() => setIsSyncSuccess(false), 3000);
+    } catch (err) {
+      console.error("Manual database sync failed:", err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const formatSyncTime = (timestamp: any) => {
+    if (!timestamp || timestamp <= 0) return "Never Synced";
+    try {
+      return format(new Date(timestamp), "yyyy-MM-dd HH:mm:ss");
+    } catch {
+      return "Unknown";
+    }
+  };
 
 
   const currentExtraHeaders = config?.extraHeaders ?? {};
@@ -86,6 +135,97 @@ export function SettingsView({ onDisconnect, darkMode = false, setDarkMode }: Se
           )}
         </div>
 
+        {/* Cache Settings Section */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between min-h-[300px]">
+          <div>
+            <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Database className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Database Cache</h4>
+              </div>
+              {localSyncStatus?.lastSync > 0 && (
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 text-[8px] font-extrabold uppercase">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Ready
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mb-5">
+              Manage cached audiobooks library data and listening sessions stored locally for offline access.
+            </p>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {/* Library Cache Counter */}
+              <div className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200/50 dark:border-slate-800/80 rounded-xl p-4 flex flex-col gap-1 hover:border-slate-300 dark:hover:border-slate-700/80 transition-all group">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Books & Items</span>
+                  <BookOpen className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 group-hover:scale-110 transition-transform" />
+                </div>
+                <span className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
+                  {localSyncStatus?.itemsCached ?? 0}
+                </span>
+                <span className="text-[8px] text-slate-400 dark:text-slate-500 font-medium">Items in local cache</span>
+              </div>
+
+              {/* Sessions Cache Counter */}
+              <div className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200/50 dark:border-slate-800/80 rounded-xl p-4 flex flex-col gap-1 hover:border-slate-300 dark:hover:border-slate-700/80 transition-all group">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Sessions</span>
+                  <History className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 group-hover:scale-110 transition-transform" />
+                </div>
+                <span className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
+                  {isDirect ? "N/A" : (localSyncStatus?.sessionsCached ?? 0)}
+                </span>
+                <span className="text-[8px] text-slate-400 dark:text-slate-500 font-medium">
+                  {isDirect ? "Direct Connect mode" : "Sessions in local cache"}
+                </span>
+              </div>
+            </div>
+
+            {/* Last Synced Row */}
+            <div className="flex items-center justify-between text-xs font-semibold py-2.5 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200/50 dark:border-slate-850 rounded-xl">
+              <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-sans">
+                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-[9px] uppercase tracking-wider font-extrabold">Last Synchronized</span>
+              </div>
+              <span className="text-slate-800 dark:text-slate-200 font-mono text-[11px] font-bold">
+                {formatSyncTime(localSyncStatus?.lastSync)}
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleSync}
+            disabled={isSyncing}
+            className={cn(
+              "w-full py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-sm mt-5 cursor-pointer active:scale-98 border",
+              isSyncing 
+                ? "bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed" 
+                : isSyncSuccess
+                  ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30"
+                  : "bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white border-transparent shadow-indigo-100 dark:shadow-none"
+            )}
+          >
+            {isSyncing ? (
+              <>
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                Syncing Cache...
+              </>
+            ) : isSyncSuccess ? (
+              <>
+                <CheckCircle2 className="w-3 h-3 text-emerald-500 animate-bounce" />
+                Sync Successful!
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-3 h-3" />
+                Synchronize Cache
+              </>
+            )}
+          </button>
+        </div>
+
         {/* Theme Settings Section */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between min-h-[300px]">
           <div>
@@ -138,18 +278,33 @@ export function SettingsView({ onDisconnect, darkMode = false, setDarkMode }: Se
         </div>
 
         {/* Version Info Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between min-h-[120px] md:col-span-2">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between min-h-[300px]">
           <div>
             <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Version Info</h4>
+              <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Version & Environment</h4>
             </div>
-            <div className="space-y-1">
-              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Application Version</span>
-              <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{packageJson.version}</span>
+            
+            <div className="space-y-4 mb-6">
+              <div className="space-y-1">
+                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Application Version</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{packageJson.version}</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Runtime Platform</span>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  {isNative ? 'Capacitor Native Shell' : 'Modern Browser App'}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Storage Provider</span>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  {isDirect ? 'IndexedDB Client Storage' : 'SQLite Server Database'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
-        </div>
       </div>
+    </div>
   );
 }

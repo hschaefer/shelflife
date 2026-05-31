@@ -448,17 +448,6 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
-            {syncStatus && syncStatus.lastSync > 0 && (
-              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 rounded-lg text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <span className="uppercase tracking-wider">
-                  DB Cache Synced
-                </span>
-              </div>
-            )}
             <button
               onClick={() => setDarkMode(!darkMode)}
               className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all shadow-sm cursor-pointer"
@@ -534,6 +523,11 @@ export default function App() {
                   }}
                   darkMode={darkMode}
                   setDarkMode={setDarkMode}
+                  syncStatus={syncStatus}
+                  onSyncComplete={async (newStatus) => {
+                    setSyncStatus(newStatus);
+                    await fetchData();
+                  }}
                 />
               )}
             </motion.div>

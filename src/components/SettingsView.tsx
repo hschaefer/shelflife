@@ -143,12 +143,6 @@ export function SettingsView({
                 <Database className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Database Cache</h4>
               </div>
-              {localSyncStatus?.lastSync > 0 && (
-                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 text-[8px] font-extrabold uppercase">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Ready
-                </div>
-              )}
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mb-5">

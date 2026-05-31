@@ -609,7 +609,7 @@ export function apiRouter(): Router {
   // POST /api/sync - Trigger manual scan/sync
   router.post('/sync', async (req, res) => {
     try {
-      const { libraryId, forceFull } = req.body || {};
+      const { libraryId, forceFull, awaitSync } = req.body || {};
       
       if (libraryId) {
         console.log(`[Sync API] Targeted awaited sync triggered for library: ${libraryId} (forceFull: ${!!forceFull})`);
@@ -621,10 +621,15 @@ export function apiRouter(): Router {
         res.json({ success: true, message: `Sync completed for library ${libraryId}` });
       } else {
         console.log('[Sync API] Manual sync triggered via endpoint.');
-        syncAll(!!forceFull).catch(err => {
-          console.error('[Sync API] Background sync failed:', err);
-        });
-        res.json({ success: true, message: 'Synchronization cycle triggered in background' });
+        if (awaitSync) {
+          await syncAll(!!forceFull);
+          res.json({ success: true, message: 'Synchronization cycle completed' });
+        } else {
+          syncAll(!!forceFull).catch(err => {
+            console.error('[Sync API] Background sync failed:', err);
+          });
+          res.json({ success: true, message: 'Synchronization cycle triggered in background' });
+        }
       }
     } catch (err: any) {
       console.error('[Sync API] Synchronous sync failed:', err.message);

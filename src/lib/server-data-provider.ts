@@ -106,10 +106,11 @@ export class ServerDataProvider implements DataProvider {
     }
   }
 
-  public async triggerSync(libraryId?: string, forceFull = false): Promise<any> {
+  public async triggerSync(libraryId?: string, forceFull = false, awaitSync = true): Promise<any> {
     const response = await this.cacheClient.post('/sync', {
       libraryId,
-      forceFull
+      forceFull,
+      awaitSync
     });
     return response.data;
   }

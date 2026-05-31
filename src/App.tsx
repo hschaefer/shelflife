@@ -156,6 +156,15 @@ export default function App() {
       
       setError(null);
 
+      // In proxy mode, trigger and await the upstream sync from Audiobookshelf before fetching fresh data
+      if (!api.isDirectMode() && !isInitial) {
+        try {
+          await api.triggerSync(undefined, false, true);
+        } catch (syncErr) {
+          console.warn("Failed to trigger upstream sync in proxy mode:", syncErr);
+        }
+      }
+
       // Fetch fast primary items first, excluding slow sessions call
       const [libData, userData, recentData, onlineData, dashboardData] = await Promise.all([
         api.getLibraries(),

@@ -532,7 +532,7 @@ export class DirectDataProvider implements DataProvider {
     };
   }
 
-  public async triggerSync(libraryId?: string, forceFull = false): Promise<any> {
+  public async triggerSync(libraryId?: string, forceFull = false, awaitSync = true): Promise<any> {
     if (libraryId) {
       if (forceFull) {
         await this.runFullSync(libraryId);

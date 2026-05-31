@@ -98,6 +98,23 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [userStats, setUserStats] = useState<UserStats[]>([]);
   const [syncStatus, setSyncStatus] = useState<any>(null);
+  
+  // Dashboard aggregated stats cache state
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [dashboardTimeframe, setDashboardTimeframe] = useState<string>("30");
+
+  async function fetchDashboardStats(tf: string) {
+    try {
+      setDashboardLoading(true);
+      const stats = await api.getDashboardStats(tf);
+      setDashboardStats(stats);
+    } catch (err) {
+      console.error("Failed to fetch dashboard stats:", err);
+    } finally {
+      setDashboardLoading(false);
+    }
+  }
 
   async function fetchSessions(isInitial = false) {
     try {
@@ -132,6 +149,7 @@ export default function App() {
       if (isInitial) {
         setLoading(true);
         setSessionsLoading(true);
+        setDashboardLoading(true);
       } else {
         setRefreshing(true);
       }
@@ -139,11 +157,12 @@ export default function App() {
       setError(null);
 
       // Fetch fast primary items first, excluding slow sessions call
-      const [libData, userData, recentData, onlineData] = await Promise.all([
+      const [libData, userData, recentData, onlineData, dashboardData] = await Promise.all([
         api.getLibraries(),
         api.getUsers(),
         api.getRecentItems(),
-        api.getOnlineUsers()
+        api.getOnlineUsers(),
+        api.getDashboardStats(dashboardTimeframe)
       ]);
 
       const libs = Array.isArray(libData) ? libData : [];
@@ -151,6 +170,9 @@ export default function App() {
 
       const rawUsers = Array.isArray(userData) ? userData : [];
       setUsers(rawUsers);
+
+      setDashboardStats(dashboardData);
+      setDashboardLoading(false);
       
       const usersOnline = onlineData && Array.isArray(onlineData.usersOnline) 
         ? onlineData.usersOnline 
@@ -188,6 +210,7 @@ export default function App() {
       setError("Failed to connect to Audiobookshelf. Please check your credentials or network.");
       setLoading(false);
       setSessionsLoading(false);
+      setDashboardLoading(false);
       setRefreshing(false);
     }
   }
@@ -460,11 +483,16 @@ export default function App() {
                 <DashboardView 
                   recentBooks={books}
                   totalBooks={totalBooks}
-                  sessions={sessions}
+                  dashboardStats={dashboardStats}
+                  dashboardLoading={dashboardLoading}
+                  dashboardTimeframe={dashboardTimeframe}
+                  onTimeframeChange={(tf) => {
+                    setDashboardTimeframe(tf);
+                    fetchDashboardStats(tf);
+                  }}
                   userStats={userStats}
                   libraries={libraries}
                   activeSessions={activeSessions}
-                  sessionsLoading={sessionsLoading}
                   isDark={darkMode}
                 />
               )}

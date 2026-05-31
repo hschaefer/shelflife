@@ -37,6 +37,7 @@ export interface DataProvider {
   getOnlineUsers(): Promise<any>;
   getUsers(): Promise<User[]>;
   getUserStats(): Promise<UserStats[]>;
+  getDashboardStats(timeframe?: string): Promise<any>;
   getSyncStatus(): Promise<SyncStatus | null>;
   triggerSync(): Promise<any>;
 

@@ -341,6 +341,11 @@ class ApiClient {
     return this.provider.getUserStats();
   }
 
+  public async getDashboardStats(timeframe?: string): Promise<any> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getDashboardStats(timeframe);
+  }
+
   public async getSyncStatus() {
     if (!this.provider) throw new Error("Provider not initialized");
     return this.provider.getSyncStatus();

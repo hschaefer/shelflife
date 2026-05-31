@@ -90,6 +90,13 @@ export class ServerDataProvider implements DataProvider {
     return response.data;
   }
 
+  public async getDashboardStats(timeframe?: string): Promise<any> {
+    const response = await this.cacheClient.get('/stats/dashboard', {
+      params: { timeframe }
+    });
+    return response.data;
+  }
+
   public async getSyncStatus(): Promise<SyncStatus | null> {
     try {
       const response = await this.cacheClient.get('/sync/status');

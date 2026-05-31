@@ -270,6 +270,189 @@ export function apiRouter(): Router {
     }
   });
 
+  // GET /api/stats/dashboard - Aggregate dashboard statistics accurately from database
+  router.get('/stats/dashboard', (req, res) => {
+    try {
+      const db = getDatabase();
+      const timeframe = req.query.timeframe as string || '30';
+      
+      let cutoffTime = 0;
+      if (timeframe !== 'all') {
+        const days = parseInt(timeframe, 10) || 30;
+        cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
+      }
+
+      const cutoff14Days = Date.now() - (14 * 24 * 60 * 60 * 1000);
+      const queryCutoff = timeframe === 'all' ? 0 : Math.min(cutoffTime, cutoff14Days);
+
+      // Fetch all required sessions in a single database request
+      const rows = db.prepare(`
+        SELECT raw_data FROM sessions 
+        WHERE started_at >= ?
+        ORDER BY started_at ASC
+      `).all(queryCutoff) as { raw_data: string }[];
+
+      const sessions = rows.map(r => JSON.parse(r.raw_data));
+
+      // Filter sessions matching active timeframe for timeframe-specific metrics
+      const filteredSessions = timeframe === 'all' 
+        ? sessions 
+        : sessions.filter(s => s.startedAt >= cutoffTime);
+
+      // 1. Top Authors
+      const authorTimeMap: Record<string, number> = {};
+      filteredSessions.forEach(session => {
+        const author = session.mediaMetadata?.authorName || 
+                       session.mediaMetadata?.author || 
+                       session.displayAuthor ||
+                       "Unknown Author";
+        const listeningTime = session.timeListening || session.duration || 0;
+        authorTimeMap[author] = (authorTimeMap[author] || 0) + listeningTime;
+      });
+
+      const topAuthors = Object.entries(authorTimeMap)
+        .map(([name, time]) => ({ name, time }))
+        .sort((a, b) => b.time - a.time)
+        .slice(0, 5);
+
+      // 2. Top Genres
+      const genreTimeMap: Record<string, number> = {};
+      filteredSessions.forEach(session => {
+        const genres = session.mediaMetadata?.genres || 
+                       session.mediaMetadata?.genre || 
+                       [];
+        const listeningTime = session.timeListening || session.duration || 0;
+        
+        if (Array.isArray(genres)) {
+          genres.forEach((g: string) => {
+            if (g) {
+              genreTimeMap[g] = (genreTimeMap[g] || 0) + listeningTime;
+            }
+          });
+        } else if (typeof genres === "string" && genres) {
+          genreTimeMap[genres] = (genreTimeMap[genres] || 0) + listeningTime;
+        }
+      });
+
+      const topGenres = Object.entries(genreTimeMap)
+        .map(([name, time]) => ({ name, time }))
+        .sort((a, b) => b.time - a.time)
+        .slice(0, 5);
+
+      // 3. Listening History Chart Data (grouped by MM/dd)
+      const activity: Record<string, number> = {};
+      filteredSessions.forEach(session => {
+        const date = new Date(session.startedAt);
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateStr = `${month}/${day}`;
+        
+        const listeningTime = (session.timeListening || session.duration || 0) / 3600;
+        activity[dateStr] = (activity[dateStr] || 0) + listeningTime;
+      });
+
+      const lineChartData = Object.entries(activity)
+        .map(([date, hours]) => ({ date, hours: parseFloat(hours.toFixed(1)) }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      // 4. Hourly Activity (Peak Hours) Chart Data (last 14 days)
+      const activityHours: Record<number, number> = {};
+      for (let h = 0; h < 24; h++) {
+        activityHours[h] = 0;
+      }
+
+      const recent14dSessions = sessions.filter(s => s.startedAt >= cutoff14Days);
+      recent14dSessions.forEach(session => {
+        const date = new Date(session.startedAt);
+        const hour = date.getHours();
+        const listeningTime = (session.timeListening || session.duration || 0) / 3600;
+        activityHours[hour] += listeningTime;
+      });
+
+      const hourlyActivityData = Object.entries(activityHours).map(([hStr, hours]) => {
+        const h = parseInt(hStr, 10);
+        const label = `${h.toString().padStart(2, '0')}:00`;
+        return { hour: h, label, hours: parseFloat(hours.toFixed(1)) };
+      }).sort((a, b) => a.hour - b.hour);
+
+      // 5. Recent Activity Grouping Helper (24H & 7D)
+      const getGroupedActivity = (days: number) => {
+        const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
+        const recentSessions = sessions.filter(s => s.startedAt >= cutoff);
+
+        const groups: Record<string, { 
+          userId: string; 
+          username: string; 
+          mostRecentActiveTime: number; 
+          totalTime: number;
+          uniqueBooks: { 
+            title: string; 
+            lastSession: any; 
+          }[];
+        }> = {};
+
+        recentSessions.forEach(session => {
+          const uId = session.userId;
+          const title = session.displayTitle || session.mediaItemTitle || "Unknown Book";
+          const time = session.timeListening || session.duration || 0;
+
+          if (!groups[uId]) {
+            groups[uId] = {
+              userId: uId,
+              username: session.username || "Unknown",
+              mostRecentActiveTime: session.startedAt,
+              totalTime: 0,
+              uniqueBooks: []
+            };
+          }
+
+          groups[uId].totalTime += time;
+          if (session.startedAt > groups[uId].mostRecentActiveTime) {
+            groups[uId].mostRecentActiveTime = session.startedAt;
+          }
+
+          const existingBook = groups[uId].uniqueBooks.find(b => b.title.toLowerCase() === title.toLowerCase());
+          if (!existingBook) {
+            groups[uId].uniqueBooks.push({
+              title,
+              lastSession: session
+            });
+          } else {
+            if (session.startedAt > existingBook.lastSession.startedAt) {
+              existingBook.lastSession = session;
+            }
+          }
+        });
+
+        const groupedList = Object.values(groups).map(g => {
+          g.uniqueBooks.sort((a, b) => b.lastSession.startedAt - a.lastSession.startedAt);
+          return {
+            ...g,
+            uniqueBooks: g.uniqueBooks.slice(0, 3)
+          };
+        });
+
+        groupedList.sort((a, b) => b.mostRecentActiveTime - a.mostRecentActiveTime);
+        return groupedList;
+      };
+
+      const recentActivity1d = getGroupedActivity(1);
+      const recentActivity7d = getGroupedActivity(7);
+
+      res.json({
+        topAuthors,
+        topGenres,
+        lineChartData,
+        hourlyActivityData,
+        recentActivity1d,
+        recentActivity7d
+      });
+    } catch (err: any) {
+      console.error('Failed to aggregate dashboard stats:', err.message);
+      res.status(500).json({ error: 'Failed to compile dashboard statistics' });
+    }
+  });
+
   // GET /api/users/stats - Server-side high-performance stats aggregation
   router.get('/users/stats', (req, res) => {
     try {

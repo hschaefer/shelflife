@@ -208,7 +208,12 @@ export class DirectDataProvider implements DataProvider {
 
   public async getSessions(params: any): Promise<{ sessions: Session[]; total?: number }> {
     // Sessions remain pass-through in Direct Mode
-    const response = await this.client.get('/sessions', { params });
+    // Audiobookshelf's API uses 'itemsPerPage' instead of 'limit' for session pagination.
+    const requestParams = { ...params };
+    if (requestParams.limit !== undefined && requestParams.itemsPerPage === undefined) {
+      requestParams.itemsPerPage = requestParams.limit;
+    }
+    const response = await this.client.get('/sessions', { params: requestParams });
     return response.data;
   }
 

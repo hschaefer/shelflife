@@ -1,7 +1,10 @@
 import axios, { AxiosInstance } from "axios";
-import { MatchCandidate } from "../types";
+import { MatchCandidate, Library, Book, User, Session, UserStats } from "../types";
 import { getItem, setItem, removeItem } from "./storage";
 import { Capacitor } from "@capacitor/core";
+import { DataProvider } from "./data-provider";
+import { ServerDataProvider } from "./server-data-provider";
+import { DirectDataProvider } from "./direct-data-provider";
 
 export interface ConnectionConfig {
   url: string;
@@ -13,6 +16,7 @@ export interface ConnectionConfig {
 class ApiClient {
   private client: AxiosInstance | null = null;
   private config: ConnectionConfig | null = null;
+  private provider: DataProvider | null = null;
 
   constructor() {
     // initialize must be called asynchronously at startup
@@ -42,6 +46,9 @@ class ApiClient {
         extraHeaders,
       };
 
+      // Set up direct ABS provider with IndexedDB local caching
+      this.provider = new DirectDataProvider(this.config.url, token, extraHeaders, isNative);
+
       const headers: Record<string, string> = {
         Authorization: `Bearer ${token}`,
       };
@@ -70,6 +77,10 @@ class ApiClient {
         extraHeaders,
       };
 
+      const serverUrl = isNative ? "http://localhost" : window.location.origin;
+      // Set up cached server provider
+      this.provider = new ServerDataProvider(serverUrl, "", extraHeaders);
+
       const headers: Record<string, string> = {};
       if (!isNative) {
         if (Object.keys(extraHeaders).length > 0) {
@@ -96,6 +107,10 @@ class ApiClient {
       }
       return response;
     });
+  }
+
+  public getProvider(): DataProvider | null {
+    return this.provider;
   }
 
   public getConfig(): ConnectionConfig | null {
@@ -231,57 +246,55 @@ class ApiClient {
     }
   }
 
-  // Get libraries
-  public async getLibraries() {
-    if (!this.client) throw new Error("Client not initialized");
-    const response = await this.client.get("/libraries");
-    return response.data;
+  // DELEGATED DATA PROVIDER METHODS FOR COMPATIBILITY
+
+  public async getLibraries(): Promise<Library[]> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getLibraries();
   }
 
-  // Get users
-  public async getUsers() {
-    if (!this.client) throw new Error("Client not initialized");
-    const response = await this.client.get("/users");
-    return response.data;
+  public async getUsers(): Promise<User[]> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getUsers();
   }
 
-  // Get online users
-  public async getOnlineUsers() {
-    if (!this.client) throw new Error("Client not initialized");
-    const response = await this.client.get("/users/online");
-    return response.data;
+  public async getOnlineUsers(): Promise<any> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getOnlineUsers();
   }
 
-  // Get sessions
-  public async getSessions(params: any) {
-    if (!this.client) throw new Error("Client not initialized");
-    // Standard query parameters
-    const response = await this.client.get("/sessions", { params });
-    return response.data;
+  public async getSessions(params: any): Promise<{ sessions: Session[]; total?: number }> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getSessions(params);
   }
 
-  // Library-specific items
   public async getLibraryItems(libraryId: string, params?: any) {
-    if (!this.client) throw new Error("Client not initialized");
-    const response = await this.client.get(`/libraries/${libraryId}/items`, { params });
-    return response.data;
+    if (!this.provider) throw new Error("Provider not initialized");
+    
+    // Map traditional client query fields to structural query params
+    const query = {
+      libraryId,
+      search: params?.search,
+      sort: params?.sort,
+      order: params?.order || (params?.desc === "1" || params?.desc === true ? "desc" : "asc"),
+      page: params?.page || 0,
+      limit: params?.limit || 20
+    };
+    
+    return this.provider.getLibraryItems(query);
   }
 
-  // Get library stats (total size, duration, etc.)
-  public async getLibraryStats(libraryId: string) {
-    if (!this.client) throw new Error("Client not initialized");
-    const response = await this.client.get(`/libraries/${libraryId}/stats`);
-    return response.data;
+  public async getLibraryStats(libraryId: string): Promise<any> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getLibraryStats(libraryId);
   }
 
-  // Library-specific controls
-  public async scanLibrary(libraryId: string) {
-    if (!this.client) throw new Error("Client not initialized");
-    const response = await this.client.post(`/libraries/${libraryId}/scan?force=1`);
-    return response.data;
+  public async scanLibrary(libraryId: string): Promise<any> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.scanLibrary(libraryId);
   }
 
-  // Get running/active tasks
+  // Get running/active tasks from ABS
   public async getTasks() {
     if (!this.client) throw new Error("Client not initialized");
     const response = await this.client.get("/tasks");
@@ -289,88 +302,23 @@ class ApiClient {
   }
 
   public async matchLibraryItem(itemId: string, matchData?: MatchCandidate) {
-    if (!this.client) throw new Error("Client not initialized");
-    const payload = matchData ? {
-      provider: matchData.provider,
-      id: matchData.id,
-      title: matchData.title,
-      author: matchData.author || null,
-      isbn: matchData.isbn || null,
-      asin: matchData.asin || null,
-      coverUrl: matchData.coverUrl || null,
-      subtitle: matchData.subtitle || null,
-      publisher: matchData.publisher || null,
-      publishDate: matchData.publishDate || null,
-      description: matchData.description || null
-    } : undefined;
-    const response = await this.client.post(`/items/${itemId}/match`, payload);
-    return response.data;
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.matchLibraryItem(itemId, matchData);
   }
 
   public async searchMatches(itemId: string, provider: string, title: string, author?: string): Promise<MatchCandidate[]> {
-    if (!this.client) throw new Error("Client not initialized");
-    const response = await this.client.get("/search/books", {
-      params: { provider, title, author }
-    });
-    const candidates = response.data || [];
-    return candidates.map((c: any) => ({
-      title: c.title,
-      author: c.author,
-      coverUrl: c.cover || (c.covers && c.covers[0]) || undefined,
-      asin: c.asin || undefined,
-      isbn: c.isbn || undefined,
-      subtitle: c.subtitle || undefined,
-      publisher: c.publisher || undefined,
-      publishDate: c.publishDate || c.publishedYear || undefined,
-      description: c.description || undefined,
-      provider: provider,
-      id: c.id || c.key || c.edition || ""
-    }));
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.searchMatches(itemId, provider, title, author);
   }
 
-  // Recent items - always aggregate client-side
-  public async getRecentItems(): Promise<{ results: any[]; totalBooks: number }> {
-    if (!this.client) throw new Error("Client not initialized");
-
-    try {
-      const libData = await this.getLibraries();
-      const libraries = libData?.libraries || libData || [];
-      
-      if (libraries.length === 0) {
-        return { results: [], totalBooks: 0 };
-      }
-
-      const recentPromises = libraries.map((lib: any) =>
-        this.client!.get(`/libraries/${lib.id}/items?limit=10&sort=addedAt&desc=1`)
-          .then((res) => ({
-            results: res.data.results || [],
-            total: res.data.total || 0,
-          }))
-          .catch((err) => {
-            console.error(`Failed to load library items for ${lib.id}:`, err);
-            return { results: [], total: 0 };
-          })
-      );
-
-      const results = await Promise.all(recentPromises);
-      const totalBooks = results.reduce((acc, r) => acc + r.total, 0);
-      const flattened = results.flatMap((r) => r.results);
-      
-      const sorted = flattened.sort((a: any, b: any) => b.addedAt - a.addedAt);
-      return {
-        results: sorted.slice(0, 10),
-        totalBooks,
-      };
-    } catch (err) {
-      console.error("Failed client-side aggregation of recent items:", err);
-      throw err;
-    }
+  public async getRecentItems(limit = 10): Promise<{ results: Book[]; totalBooks: number }> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getRecentItems(limit);
   }
 
   public async getItemDetails(itemId: string) {
-    if (!this.client) throw new Error("Client not initialized");
-    const response = await this.client.get(`/items/${itemId}`);
-    return response.data;
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getItemDetails(itemId);
   }
 
   public async lookupChapters(asin: string, region?: string) {
@@ -384,6 +332,23 @@ class ApiClient {
     if (!this.client) throw new Error("Client not initialized");
     const response = await this.client.post(`/items/${itemId}/chapters`, { chapters });
     return response.data;
+  }
+
+  // Cache specific methods
+  
+  public async getUserStats(): Promise<UserStats[]> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getUserStats();
+  }
+
+  public async getSyncStatus() {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getSyncStatus();
+  }
+
+  public async triggerSync() {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.triggerSync();
   }
 }
 

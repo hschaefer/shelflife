@@ -113,14 +113,16 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [libraryStats, setLibraryStats] = useState<{ totalSize: number; totalDuration: number } | null>(null);
   const [chartTimeframe, setChartTimeframe] = useState<'7' | '30' | '365' | 'all'>('all');
+  const [chartBooks, setChartBooks] = useState<Book[]>([]);
+  const [totalBooks, setTotalBooks] = useState(0);
 
   const { chartData, minTime, maxTime } = useMemo(() => {
-    if (!books || books.length === 0) {
+    if (!chartBooks || chartBooks.length === 0) {
       return { chartData: [], minTime: 0, maxTime: 0 };
     }
     
     // Sort all books ascending by addedAt
-    const sorted = [...books]
+    const sorted = [...chartBooks]
       .filter(b => b.addedAt)
       .sort((a, b) => a.addedAt - b.addedAt);
       
@@ -193,7 +195,7 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
     });
 
     return { chartData: chartPoints, minTime, maxTime };
-  }, [books, chartTimeframe]);
+  }, [chartBooks, chartTimeframe]);
 
   const handleHeaderClick = (field: 'title' | 'author' | 'addedAt') => {
     if (sortBy === field) {
@@ -210,47 +212,98 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
     }
   }, [libraries]);
 
-  const fetchLibraryBooks = async () => {
+  const fetchLibraryMetadata = async () => {
     const libId = selectedLibraryId || (libraries.length > 0 ? libraries[0].id : "");
     if (!libId) return;
     setLoading(true);
     try {
-      const [res, stats] = await Promise.all([
-        api.getLibraryItems(libId, { limit: 1000 }),
+      const [stats, fullItemsRes] = await Promise.all([
         api.getLibraryStats(libId).catch(err => {
           console.error("Failed to fetch library stats:", err);
           return null;
+        }),
+        api.getLibraryItems(libId, { limit: 100000, page: 0 }).catch(err => {
+          console.error("Failed to fetch full library items for chart:", err);
+          return { results: [], totalBooks: 0 };
         })
       ]);
-      const items = res.results || res || [];
+
+      const items = Array.isArray(fullItemsRes) ? fullItemsRes : (fullItemsRes?.results || []);
       const transformed: Book[] = items.map((item: any) => {
-        const mediaMeta = item.media?.metadata || item.metadata || { title: "Unknown Title", authorName: "Unknown Author" };
+        const mediaMeta = item.metadata || { title: "Unknown Title", authorName: "Unknown Author" };
         return {
           id: item.id,
           libraryId: item.libraryId,
           metadata: {
             title: mediaMeta.title,
             authorName: mediaMeta.authorName,
-            coverPath: api.getCoverPath(item.id),
+            coverPath: mediaMeta.coverPath || api.getCoverPath(item.id),
           },
           addedAt: item.addedAt || Date.now(),
-          duration: item.media?.duration || 0,
+          duration: item.duration || 0,
         };
       });
-      setBooks(transformed);
+
+      setChartBooks(transformed);
       setLibraryStats(stats);
     } catch (err) {
-      console.error("Failed to fetch library books:", err);
-      setBooks(initialBooks);
+      console.error("Failed to fetch library metadata:", err);
       setLibraryStats(null);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchPaginatedBooks = async () => {
+    const libId = selectedLibraryId || (libraries.length > 0 ? libraries[0].id : "");
+    if (!libId) return;
+    try {
+      const res = await api.getLibraryItems(libId, {
+        search: searchTerm,
+        sort: sortBy,
+        desc: sortOrder === 'desc',
+        page: 0,
+        limit: visibleCount
+      });
+      const items = Array.isArray(res) ? res : (res?.results || []);
+      const transformed: Book[] = items.map((item: any) => {
+        const mediaMeta = item.metadata || { title: "Unknown Title", authorName: "Unknown Author" };
+        return {
+          id: item.id,
+          libraryId: item.libraryId,
+          metadata: {
+            title: mediaMeta.title,
+            authorName: mediaMeta.authorName,
+            coverPath: mediaMeta.coverPath || api.getCoverPath(item.id),
+          },
+          addedAt: item.addedAt || Date.now(),
+          duration: item.duration || 0,
+        };
+      });
+      setBooks(transformed);
+      setTotalBooks(res.totalBooks || transformed.length);
+    } catch (err) {
+      console.error("Failed to fetch paginated books:", err);
+      setBooks([]);
+      setTotalBooks(0);
+    }
+  };
+
   useEffect(() => {
-    fetchLibraryBooks();
+    fetchLibraryMetadata();
   }, [selectedLibraryId]);
+
+  useEffect(() => {
+    fetchPaginatedBooks();
+  }, [selectedLibraryId, searchTerm, sortBy, sortOrder, visibleCount]);
+
+  const fetchLibraryBooks = async () => {
+    // Legacy function preserved for scan status polling / manual refresh triggers
+    await Promise.all([
+      fetchLibraryMetadata(),
+      fetchPaginatedBooks()
+    ]);
+  };
 
   const handleRescan = async () => {
     const libId = selectedLibraryId || (libraries.length > 0 ? libraries[0].id : "");
@@ -314,37 +367,8 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
     }, 2000);
   };
 
-  const filteredBooks = useMemo(() => {
-    return books
-      .filter(book => {
-        const title = book.metadata?.title || "";
-        const author = book.metadata?.authorName || "";
-        const id = book.id || "";
-        const query = searchTerm.toLowerCase();
-        return title.toLowerCase().includes(query) || 
-               author.toLowerCase().includes(query) || 
-               id.toLowerCase().includes(query);
-      })
-      .sort((a, b) => {
-        let comparison = 0;
-        if (sortBy === 'title') {
-          const titleA = a.metadata?.title || "";
-          const titleB = b.metadata?.title || "";
-          comparison = titleA.localeCompare(titleB, undefined, { sensitivity: 'base', numeric: true });
-        } else if (sortBy === 'author') {
-          const authorA = a.metadata?.authorName || "";
-          const authorB = b.metadata?.authorName || "";
-          comparison = authorA.localeCompare(authorB, undefined, { sensitivity: 'base', numeric: true });
-        } else if (sortBy === 'addedAt') {
-          comparison = a.addedAt - b.addedAt;
-        }
-        return sortOrder === 'asc' ? comparison : -comparison;
-      });
-  }, [books, searchTerm, sortBy, sortOrder]);
+  const paginatedBooks = books;
 
-  const paginatedBooks = useMemo(() => {
-    return filteredBooks.slice(0, visibleCount);
-  }, [filteredBooks, visibleCount]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -398,10 +422,10 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
           <div className="block lg:hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
             <div className="grid grid-cols-2 gap-x-4 gap-y-4">
               {[
-                { label: "Total Indexed", value: books.length, icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/30" },
+                { label: "Total Indexed", value: totalBooks, icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/30" },
                 { label: "Library Size", value: formatBytes(libraryStats?.totalSize), icon: Database, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/30" },
                 { label: "Play Duration", value: formatDuration(libraryStats?.totalDuration), icon: Clock, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-                { label: "Unique Authors", value: [...new Set(books.map(b => b.metadata?.authorName || "Unknown"))].length, icon: UserIcon, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/30" },
+                { label: "Unique Authors", value: libraryStats?.totalAuthors || 0, icon: UserIcon, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/30" },
               ].map((stat, idx) => (
                 <div key={stat.label} className={cn("flex items-center gap-3", idx % 2 === 1 && "pl-2 border-l border-slate-100 dark:border-slate-800")}>
                   <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", stat.bg, stat.color)}>
@@ -419,10 +443,10 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
           {/* DESKTOP VIEW ONLY: Stacked Vertical Cards */}
           <div className="hidden lg:flex flex-col gap-3 h-full">
             {[
-              { label: "Total Indexed", value: books.length, icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/30" },
+              { label: "Total Indexed", value: totalBooks, icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/30" },
               { label: "Library Size", value: formatBytes(libraryStats?.totalSize), icon: Database, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/30" },
               { label: "Play Duration", value: formatDuration(libraryStats?.totalDuration), icon: Clock, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-              { label: "Unique Authors", value: [...new Set(books.map(b => b.metadata?.authorName || "Unknown"))].length, icon: UserIcon, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/30" },
+              { label: "Unique Authors", value: libraryStats?.totalAuthors || 0, icon: UserIcon, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/30" },
             ].map((stat) => (
               <div key={stat.label} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 flex items-center gap-3.5 shadow-sm flex-grow justify-start">
                 <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", stat.bg, stat.color)}>
@@ -771,20 +795,20 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
           </div>
         )}
         
-        {!loading && filteredBooks.length > visibleCount && (
+        {!loading && totalBooks > visibleCount && (
           <div className="p-3 bg-slate-50/50 dark:bg-slate-850/20 border-t border-slate-200 dark:border-slate-800 flex items-center justify-center">
             <button 
               onClick={() => setVisibleCount(prev => prev + 15)}
               className="text-[10px] font-bold text-indigo-600 dark:text-indigo-450 hover:text-indigo-750 dark:hover:text-indigo-350 transition-colors uppercase tracking-widest active:scale-95 cursor-pointer"
             >
-              Load More Assets ({filteredBooks.length - visibleCount} remaining)
+              Load More Assets ({totalBooks - visibleCount} remaining)
             </button>
           </div>
         )}
-        {!loading && filteredBooks.length <= visibleCount && filteredBooks.length > 0 && (
+        {!loading && totalBooks <= visibleCount && totalBooks > 0 && (
           <div className="p-3 bg-slate-50/50 dark:bg-slate-850/20 border-t border-slate-200 dark:border-slate-800 flex items-center justify-center">
             <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-              All {filteredBooks.length} assets displayed
+              All {totalBooks} assets displayed
             </span>
           </div>
         )}

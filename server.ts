@@ -5,6 +5,9 @@ import axios from "axios";
 import dotenv from "dotenv";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import type { IncomingMessage } from "http";
+import { initDatabase } from "./server/db.js";
+import { apiRouter } from "./server/api-routes.js";
+import { startSyncService } from "./server/sync.js";
 
 dotenv.config();
 
@@ -17,6 +20,17 @@ async function startServer() {
     ABS_URL = ABS_URL.slice(0, -1);
   }
   const ABS_TOKEN = process.env.ABS_TOKEN;
+
+  // Initialize SQLite cache database
+  initDatabase();
+
+  // Mount cache API routes
+  app.use("/api", apiRouter());
+
+  // Start background delta sync if configured
+  if (ABS_URL && ABS_TOKEN) {
+    startSyncService(false);
+  }
 
   // Parse optional extra headers (e.g. Cloudflare Access service tokens)
   let envExtraHeaders: Record<string, string> = {};

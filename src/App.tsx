@@ -96,20 +96,29 @@ export default function App() {
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userStats, setUserStats] = useState<UserStats[]>([]);
+  const [syncStatus, setSyncStatus] = useState<any>(null);
 
   async function fetchSessions(isInitial = false) {
     try {
       setSessionsLoading(true);
       const sessionRes = await api.getSessions({
-        itemsPerPage: 500,
+        limit: 500,
         sort: "startedAt",
-        desc: "1",
-        bypassCache: isInitial ? undefined : "true"
+        desc: "1"
       });
       const allSessions = sessionRes && Array.isArray(sessionRes.sessions) 
         ? sessionRes.sessions 
         : (Array.isArray(sessionRes) ? sessionRes : []);
       setSessions(allSessions);
+
+      // Fetch user stats pre-aggregated from cache
+      const stats = await api.getUserStats();
+      setUserStats(stats);
+
+      // Fetch sync status
+      const status = await api.getSyncStatus();
+      setSyncStatus(status);
     } catch (err) {
       console.error("Failed to fetch listening sessions:", err);
     } finally {
@@ -137,14 +146,10 @@ export default function App() {
         api.getOnlineUsers()
       ]);
 
-      const libs = libData && Array.isArray(libData.libraries) 
-        ? libData.libraries 
-        : (Array.isArray(libData) ? libData : []);
+      const libs = Array.isArray(libData) ? libData : [];
       setLibraries(libs);
 
-      const rawUsers = userData && Array.isArray(userData.users) 
-        ? userData.users 
-        : (Array.isArray(userData) ? userData : []);
+      const rawUsers = Array.isArray(userData) ? userData : [];
       setUsers(rawUsers);
       
       const usersOnline = onlineData && Array.isArray(onlineData.usersOnline) 
@@ -169,23 +174,8 @@ export default function App() {
         }));
       setActiveSessions(openSessions);
       
-      const items = Array.isArray(recentData) ? recentData : (recentData.results || []);
-      // Transform Audiobookshelf API response to match Book type
-      const transformedBooks: Book[] = items.map((item: any) => {
-        const mediaMeta = item.media?.metadata || item.metadata || { title: "Unknown Title", authorName: "Unknown Author" };
-        return {
-          id: item.id,
-          libraryId: item.libraryId,
-          metadata: {
-            title: mediaMeta.title,
-            authorName: mediaMeta.authorName,
-            coverPath: api.getCoverPath(item.id),
-          },
-          addedAt: item.addedAt,
-          duration: item.media?.duration || 0,
-        };
-      });
-      setBooks(transformedBooks);
+      const items = recentData.results || [];
+      setBooks(items);
       setTotalBooks(recentData.totalBooks || 0);
 
       // Shell loaded immediately
@@ -303,140 +293,7 @@ export default function App() {
   }, [isConfigured, users]);
 
   // Aggregate User Stats for both Dashboard and Users View
-  const userStats = useMemo(() => {
-    const statsMap: Record<string, UserStats> = {};
-    const userMap: Record<string, string> = {};
-    users.forEach(u => { userMap[u.id] = u.username; });
 
-    // Track hour distribution, completion, genres, and devices for each user
-    const hourDistribution: Record<string, number[]> = {};
-    const completionData: Record<string, { listened: number; total: number }> = {};
-    const firstSession: Record<string, number> = {};
-    const genreCounts: Record<string, Record<string, number>> = {};
-    const deviceCounts: Record<string, Record<string, number>> = {};
-
-    sessions.forEach(session => {
-      if (!statsMap[session.userId]) {
-        statsMap[session.userId] = {
-          userId: session.userId,
-          username: userMap[session.userId] || session.username || session.userId,
-          totalTime: 0,
-          avgDaily: 0,
-          activity: {},
-          joinedAt: session.startedAt,
-          preferredTime: "",
-          completionRate: 0,
-          deviceUsage: "Web Client",
-          topGenre: "Mixed"
-        };
-        hourDistribution[session.userId] = new Array(24).fill(0);
-        completionData[session.userId] = { listened: 0, total: 0 };
-        firstSession[session.userId] = session.startedAt;
-        genreCounts[session.userId] = {};
-        deviceCounts[session.userId] = {};
-      }
-
-      // Track earliest session as join date proxy
-      if (session.startedAt < firstSession[session.userId]) {
-        firstSession[session.userId] = session.startedAt;
-      }
-
-      const dateStr = format(session.startedAt, "yyyy-MM-dd");
-      const listeningTime = session.timeListening || session.duration || 0;
-      statsMap[session.userId].totalTime += listeningTime;
-      statsMap[session.userId].activity[dateStr] = (statsMap[session.userId].activity[dateStr] || 0) + listeningTime;
-
-      // Track hour distribution
-      const hour = new Date(session.startedAt).getHours();
-      hourDistribution[session.userId][hour]++;
-
-      // Track completion rate
-      if (session.duration && session.duration > 0) {
-        completionData[session.userId].listened += session.timeListening || 0;
-        completionData[session.userId].total += session.duration;
-      }
-
-      // Track genres from raw metadata
-      const rawSession = session as any;
-      const genres = rawSession.mediaMetadata?.genres || [];
-      if (Array.isArray(genres)) {
-        genres.forEach((g: string) => {
-          if (g) {
-            genreCounts[session.userId][g] = (genreCounts[session.userId][g] || 0) + 1;
-          }
-        });
-      }
-
-      // Track client device usage
-      const clientName = rawSession.deviceInfo?.clientName;
-      if (clientName) {
-        deviceCounts[session.userId][clientName] = (deviceCounts[session.userId][clientName] || 0) + 1;
-      }
-    });
-
-    return Object.values(statsMap).map(user => {
-      const activeDays = Object.keys(user.activity).length;
-      user.avgDaily = activeDays > 0 ? user.totalTime / activeDays : 0;
-      user.joinedAt = firstSession[user.userId];
-
-      // Calculate preferred time from hour distribution
-      const hours = hourDistribution[user.userId];
-      if (hours) {
-        const maxCount = Math.max(...hours);
-        const peakHour = hours.indexOf(maxCount);
-        if (maxCount > 0) {
-          const label = getTimeLabel(peakHour);
-          user.preferredTime = `${label} (${peakHour}:00-${peakHour + 1}:00)`;
-        } else {
-          user.preferredTime = "Varies";
-        }
-      }
-
-      // Calculate completion rate
-      const comp = completionData[user.userId];
-      if (comp && comp.total > 0) {
-        user.completionRate = Math.round((comp.listened / comp.total) * 100);
-      }
-
-      // Calculate top genre dynamically
-      const userGenres = genreCounts[user.userId];
-      if (userGenres && Object.keys(userGenres).length > 0) {
-        let topG = "Mixed";
-        let maxGCount = 0;
-        Object.entries(userGenres).forEach(([genre, count]) => {
-          if (count > maxGCount) {
-            maxGCount = count;
-            topG = genre;
-          }
-        });
-        user.topGenre = topG;
-      }
-
-      // Calculate device usage dynamically
-      const userDevices = deviceCounts[user.userId];
-      if (userDevices && Object.keys(userDevices).length > 0) {
-        let topD = "Web Client";
-        let maxDCount = 0;
-        Object.entries(userDevices).forEach(([device, count]) => {
-          if (count > maxDCount) {
-            maxDCount = count;
-            topD = device;
-          }
-        });
-        user.deviceUsage = topD;
-      }
-
-      return user;
-    }).sort((a, b) => b.totalTime - a.totalTime);
-  }, [sessions, users]);
-
-  // Helper to format time preference
-  function getTimeLabel(hour: number): string {
-    if (hour >= 5 && hour < 12) return "Morning";
-    if (hour >= 12 && hour < 17) return "Afternoon";
-    if (hour >= 17 && hour < 21) return "Evening";
-    return "Night";
-  }
 
   if (isConfigured === null) {
     return (
@@ -559,6 +416,17 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
+            {syncStatus && syncStatus.lastSync > 0 && (
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 rounded-lg text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="uppercase tracking-wider">
+                  DB Cache Synced
+                </span>
+              </div>
+            )}
             <button
               onClick={() => setDarkMode(!darkMode)}
               className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all shadow-sm cursor-pointer"

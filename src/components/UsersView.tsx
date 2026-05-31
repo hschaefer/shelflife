@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect, lazy, Suspense } from "react";
 import { 
   Users, Search, Filter, ChevronRight, Clock, Calendar, BarChart3, 
-  History, User as UserIcon, TrendingUp, Music, LayoutGrid, List, BookOpen
+  History, User as UserIcon, TrendingUp, Music, LayoutGrid, List, BookOpen,
+  ChevronLeft, ChevronsLeft, ChevronsRight
 } from "lucide-react";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
@@ -32,12 +33,20 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
 
   const [viewMode, setViewMode] = useState<ViewMode>('recent');
   const [progressFilter, setProgressFilter] = useState<ProgressFilter>('all');
+  const [sessionPage, setSessionPage] = useState(1);
+  const SESSIONS_PER_PAGE = 10;
 
-  // Reset view mode and progress filter when selected user changes
+  // Reset view mode, progress filter, and page when selected user changes
   useEffect(() => {
     setViewMode('recent');
     setProgressFilter('all');
+    setSessionPage(1);
   }, [selectedUserId]);
+
+  // Reset page when view settings change
+  useEffect(() => {
+    setSessionPage(1);
+  }, [viewMode, progressFilter]);
 
   const filteredUsers = useMemo(() => {
     return users.filter(u => u.username.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -125,6 +134,55 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
       return true;
     });
   }, [allUserBooks, progressFilter]);
+
+  const activeItemsCount = useMemo(() => {
+    if (viewMode === 'recent') return last14DaysBooks.length;
+    if (viewMode === 'all-books') return filteredAllUserBooks.length;
+    if (viewMode === 'full-log') return selectedUserSessions.length;
+    return 0;
+  }, [viewMode, last14DaysBooks, filteredAllUserBooks, selectedUserSessions]);
+
+  const totalSessionPages = Math.max(1, Math.ceil(activeItemsCount / SESSIONS_PER_PAGE));
+
+  const paginatedAllUserBooks = useMemo(() => {
+    const startIndex = (sessionPage - 1) * SESSIONS_PER_PAGE;
+    return filteredAllUserBooks.slice(startIndex, startIndex + SESSIONS_PER_PAGE);
+  }, [filteredAllUserBooks, sessionPage]);
+
+  const paginatedUserSessions = useMemo(() => {
+    const startIndex = (sessionPage - 1) * SESSIONS_PER_PAGE;
+    return selectedUserSessions.slice(startIndex, startIndex + SESSIONS_PER_PAGE);
+  }, [selectedUserSessions, sessionPage]);
+
+  const paginatedLast14DaysBooks = useMemo(() => {
+    const startIndex = (sessionPage - 1) * SESSIONS_PER_PAGE;
+    return last14DaysBooks.slice(startIndex, startIndex + SESSIONS_PER_PAGE);
+  }, [last14DaysBooks, sessionPage]);
+
+  const getSessionPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    if (totalSessionPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalSessionPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      const start = Math.max(2, sessionPage - 1);
+      const end = Math.min(totalSessionPages - 1, sessionPage + 1);
+      if (start > 2) {
+        pages.push('...');
+      }
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      if (end < totalSessionPages - 1) {
+        pages.push('...');
+      }
+      pages.push(totalSessionPages);
+    }
+    return pages;
+  };
 
   const userActivityChartData = useMemo(() => {
     if (!selectedUserId) return [];
@@ -479,14 +537,14 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                             <div className="w-12 h-3.5 bg-slate-200 dark:bg-slate-800 rounded" />
                           </td>
                           <td className="px-4 py-3">
-                            <div className="w-16 h-3 bg-slate-200 dark:bg-slate-800 rounded mb-1" />
+                    <div className="w-16 h-3 bg-slate-200 dark:bg-slate-800 rounded mb-1" />
                             <div className="w-10 h-2 bg-slate-100 dark:bg-slate-850 rounded" />
                           </td>
                         </tr>
                       ))
                     ) : viewMode === 'all-books' ? (
-                      filteredAllUserBooks.length > 0 ? (
-                        filteredAllUserBooks.map(({ title, lastSession }) => {
+                      paginatedAllUserBooks.length > 0 ? (
+                        paginatedAllUserBooks.map(({ title, lastSession }) => {
                           const { itemId, progressPercent } = getSessionBookInfo(lastSession);
                           return (
                             <tr key={lastSession.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
@@ -543,58 +601,66 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                         </tr>
                       )
                     ) : viewMode === 'full-log' ? (
-                      selectedUserSessions.map((session) => {
-                        const { itemId, progressPercent } = getSessionBookInfo(session);
-                        return (
-                          <tr key={session.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
-                            <td className="px-4 py-2">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 aspect-square rounded overflow-hidden shadow-sm shrink-0 border border-slate-200/50 dark:border-slate-800 relative">
-                                  {itemId ? (
-                                    <CoverImage 
-                                      itemId={itemId} 
-                                      title={session.displayTitle || session.mediaItemTitle} 
-                                      className="w-full h-full object-cover animate-fade-in" 
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500">
-                                      <BookOpen size={14} />
-                                    </div>
-                                  )}
-                                </div>
-                                <div>
-                                  <p className="text-xs font-bold text-slate-900 dark:text-slate-100 line-clamp-1">{session.displayTitle || session.mediaItemTitle}</p>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    {progressPercent !== null && (
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 py-0.2 rounded">
-                                          {progressPercent}%
-                                        </span>
-                                        <div className="w-12 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                          <div 
-                                            className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full" 
-                                            style={{ width: `${progressPercent}%` }}
-                                          />
-                                        </div>
+                      paginatedUserSessions.length > 0 ? (
+                        paginatedUserSessions.map((session) => {
+                          const { itemId, progressPercent } = getSessionBookInfo(session);
+                          return (
+                            <tr key={session.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                              <td className="px-4 py-2">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 aspect-square rounded overflow-hidden shadow-sm shrink-0 border border-slate-200/50 dark:border-slate-800 relative">
+                                    {itemId ? (
+                                      <CoverImage 
+                                        itemId={itemId} 
+                                        title={session.displayTitle || session.mediaItemTitle} 
+                                        className="w-full h-full object-cover animate-fade-in" 
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500">
+                                        <BookOpen size={14} />
                                       </div>
                                     )}
                                   </div>
+                                  <div>
+                                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100 line-clamp-1">{session.displayTitle || session.mediaItemTitle}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      {progressPercent !== null && (
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 py-0.2 rounded">
+                                            {progressPercent}%
+                                          </span>
+                                          <div className="w-12 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                            <div 
+                                              className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full" 
+                                              style={{ width: `${progressPercent}%` }}
+                                            />
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-2 font-bold text-slate-700 dark:text-slate-300 text-[11px]">
-                              {formatDuration(session.timeListening || session.duration || 0)}
-                            </td>
-                            <td className="px-4 py-2">
-                              <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{format(session.startedAt, "MMM d, HH:mm")}</p>
-                              <p className="text-[8px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-tight">{formatDistanceToNow(session.startedAt)} ago</p>
-                            </td>
-                          </tr>
-                        );
-                      })
+                              </td>
+                              <td className="px-4 py-2 font-bold text-slate-700 dark:text-slate-300 text-[11px]">
+                                {formatDuration(session.timeListening || session.duration || 0)}
+                              </td>
+                              <td className="px-4 py-2">
+                                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{format(session.startedAt, "MMM d, HH:mm")}</p>
+                                <p className="text-[8px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-tight">{formatDistanceToNow(session.startedAt)} ago</p>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={3} className="px-4 py-8 text-center text-slate-400 dark:text-slate-500 text-[10px] font-medium">
+                            No playback history found.
+                          </td>
+                        </tr>
+                      )
                     ) : (
-                      last14DaysBooks.length > 0 ? (
-                        last14DaysBooks.map(({ title, lastSession }) => {
+                      paginatedLast14DaysBooks.length > 0 ? (
+                        paginatedLast14DaysBooks.map(({ title, lastSession }) => {
                           const { itemId, progressPercent } = getSessionBookInfo(lastSession);
                           return (
                             <tr key={lastSession.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
@@ -654,6 +720,86 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                   </tbody>
                 </table>
               </div>
+              
+              {/* Pagination control bar */}
+              {!sessionsLoading && activeItemsCount > SESSIONS_PER_PAGE && (
+                <div className="px-4 py-3 bg-slate-50/30 dark:bg-slate-800/10 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                  <div className="font-semibold text-slate-500 dark:text-slate-400">
+                    Showing <span className="text-slate-855 dark:text-slate-200">{(sessionPage - 1) * SESSIONS_PER_PAGE + 1}</span> to{" "}
+                    <span className="text-slate-855 dark:text-slate-200">{Math.min(activeItemsCount, sessionPage * SESSIONS_PER_PAGE)}</span> of{" "}
+                    <span className="text-slate-855 dark:text-slate-205">{activeItemsCount}</span> entries
+                  </div>
+                  
+                  <div className="flex items-center gap-1.5">
+                    {/* First Page */}
+                    <button
+                      onClick={() => setSessionPage(1)}
+                      disabled={sessionPage === 1}
+                      className={cn(
+                        "p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                      )}
+                      title="First Page"
+                    >
+                      <ChevronsLeft size={13} />
+                    </button>
+
+                    {/* Prev Page */}
+                    <button
+                      onClick={() => setSessionPage(prev => Math.max(1, prev - 1))}
+                      disabled={sessionPage === 1}
+                      className={cn(
+                        "p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                      )}
+                      title="Previous Page"
+                    >
+                      <ChevronLeft size={13} />
+                    </button>
+
+                    {/* Page Numbers */}
+                    {getSessionPageNumbers().map((p, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => typeof p === 'number' && setSessionPage(p)}
+                        disabled={p === '...'}
+                        className={cn(
+                          "min-w-8 h-8 px-2 rounded-lg text-[10px] font-extrabold transition-all flex items-center justify-center cursor-pointer",
+                          p === sessionPage
+                            ? "bg-indigo-650 dark:bg-indigo-600 text-white shadow-sm"
+                            : p === '...'
+                            ? "text-slate-400 dark:text-slate-600 cursor-default"
+                            : "border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-350"
+                        )}
+                      >
+                        {p}
+                      </button>
+                    ))}
+
+                    {/* Next Page */}
+                    <button
+                      onClick={() => setSessionPage(prev => Math.min(totalSessionPages, prev + 1))}
+                      disabled={sessionPage === totalSessionPages}
+                      className={cn(
+                        "p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                      )}
+                      title="Next Page"
+                    >
+                      <ChevronRight size={13} />
+                    </button>
+
+                    {/* Last Page */}
+                    <button
+                      onClick={() => setSessionPage(totalSessionPages)}
+                      disabled={sessionPage === totalSessionPages}
+                      className={cn(
+                        "p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                      )}
+                      title="Last Page"
+                    >
+                      <ChevronsRight size={13} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -3,7 +3,7 @@ import {
   Library as LibraryIcon, Database, RefreshCw, Layers, BookOpen, 
   Search, Filter, MoreVertical, CheckCircle2, AlertCircle, Sparkles,
   ChevronRight, Calendar, User as UserIcon, Tag, ArrowUp, ArrowDown, Clock,
-  TrendingUp
+  TrendingUp, ChevronLeft, ChevronsLeft, ChevronsRight
 } from "lucide-react";
 import { Book, Library } from "../types";
 import { formatDistanceToNow, format, subDays } from "date-fns";
@@ -107,7 +107,8 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
   const [selectedBookForDetails, setSelectedBookForDetails] = useState<Book | null>(null);
   const [initialModalTab, setInitialModalTab] = useState<'details' | 'match' | 'chapters'>('details');
   const [searchTerm, setSearchTerm] = useState("");
-  const [visibleCount, setVisibleCount] = useState(15);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 18;
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [sortBy, setSortBy] = useState<'title' | 'author' | 'addedAt'>('addedAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -254,6 +255,33 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
     }
   };
 
+  const totalPages = Math.ceil(totalBooks / ITEMS_PER_PAGE) || 1;
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      if (start > 2) {
+        pages.push('...');
+      }
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      if (end < totalPages - 1) {
+        pages.push('...');
+      }
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
   const fetchPaginatedBooks = async () => {
     const libId = selectedLibraryId || (libraries.length > 0 ? libraries[0].id : "");
     if (!libId) return;
@@ -262,8 +290,8 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
         search: searchTerm,
         sort: sortBy,
         desc: sortOrder === 'desc',
-        page: 0,
-        limit: visibleCount
+        page: currentPage - 1,
+        limit: ITEMS_PER_PAGE
       });
       const items = Array.isArray(res) ? res : (res?.results || []);
       const transformed: Book[] = items.map((item: any) => {
@@ -293,9 +321,14 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
     fetchLibraryMetadata();
   }, [selectedLibraryId]);
 
+  // Reset page to 1 on filter/search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedLibraryId, searchTerm, sortBy, sortOrder]);
+
   useEffect(() => {
     fetchPaginatedBooks();
-  }, [selectedLibraryId, searchTerm, sortBy, sortOrder, visibleCount]);
+  }, [selectedLibraryId, searchTerm, sortBy, sortOrder, currentPage]);
 
   const fetchLibraryBooks = async () => {
     // Legacy function preserved for scan status polling / manual refresh triggers
@@ -386,7 +419,7 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
                 value={selectedLibraryId}
                 onChange={(e) => {
                   setSelectedLibraryId(e.target.value);
-                  setVisibleCount(15);
+                  setCurrentPage(1);
                 }}
                 className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/30 outline-none transition-all cursor-pointer hover:border-slate-300 dark:hover:border-slate-700"
               >
@@ -566,7 +599,7 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
-                  setVisibleCount(15); // Reset visible count on search
+                  setCurrentPage(1); // Reset page on search
                 }}
                 placeholder="Search volume by title, author, or ID..." 
                 className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-1.5 pl-9 pr-3 text-[11px] font-medium focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/30 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all"
@@ -579,7 +612,7 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
                   value={sortBy}
                   onChange={(e) => {
                     setSortBy(e.target.value as any);
-                    setVisibleCount(15);
+                    setCurrentPage(1); // Reset page on sort change
                   }}
                   className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/30 outline-none transition-all cursor-pointer hover:border-slate-300 dark:hover:border-slate-700"
                 >
@@ -795,21 +828,82 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
           </div>
         )}
         
-        {!loading && totalBooks > visibleCount && (
-          <div className="p-3 bg-slate-50/50 dark:bg-slate-850/20 border-t border-slate-200 dark:border-slate-800 flex items-center justify-center">
-            <button 
-              onClick={() => setVisibleCount(prev => prev + 15)}
-              className="text-[10px] font-bold text-indigo-600 dark:text-indigo-450 hover:text-indigo-750 dark:hover:text-indigo-350 transition-colors uppercase tracking-widest active:scale-95 cursor-pointer"
-            >
-              Load More Assets ({totalBooks - visibleCount} remaining)
-            </button>
-          </div>
-        )}
-        {!loading && totalBooks <= visibleCount && totalBooks > 0 && (
-          <div className="p-3 bg-slate-50/50 dark:bg-slate-850/20 border-t border-slate-200 dark:border-slate-800 flex items-center justify-center">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-              All {totalBooks} assets displayed
-            </span>
+        {!loading && totalBooks > 0 && (
+          <div className="px-4 py-3 bg-slate-50/30 dark:bg-slate-800/10 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="font-semibold text-slate-500 dark:text-slate-400">
+              Showing <span className="text-slate-850 dark:text-slate-200">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> to{" "}
+              <span className="text-slate-850 dark:text-slate-200">{Math.min(totalBooks, currentPage * ITEMS_PER_PAGE)}</span> of{" "}
+              <span className="text-slate-855 dark:text-slate-205">{totalBooks}</span> assets
+            </div>
+            
+            <div className="flex items-center gap-1.5">
+              {/* First Page */}
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className={cn(
+                  "p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                )}
+                title="First Page"
+              >
+                <ChevronsLeft size={13} />
+              </button>
+
+              {/* Prev Page */}
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className={cn(
+                  "p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                )}
+                title="Previous Page"
+              >
+                <ChevronLeft size={13} />
+              </button>
+
+              {/* Page Numbers */}
+              {getPageNumbers().map((p, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => typeof p === 'number' && setCurrentPage(p)}
+                  disabled={p === '...'}
+                  className={cn(
+                    "min-w-8 h-8 px-2 rounded-lg text-[10px] font-extrabold transition-all flex items-center justify-center cursor-pointer",
+                    p === currentPage
+                      ? "bg-indigo-650 dark:bg-indigo-600 text-white shadow-sm"
+                      : p === '...'
+                      ? "text-slate-400 dark:text-slate-600 cursor-default"
+                      : "border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-350"
+                  )}
+                >
+                  {p}
+                </button>
+              ))}
+
+              {/* Next Page */}
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className={cn(
+                  "p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                )}
+                title="Next Page"
+              >
+                <ChevronRight size={13} />
+              </button>
+
+              {/* Last Page */}
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className={cn(
+                  "p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                )}
+                title="Last Page"
+              >
+                <ChevronsRight size={13} />
+              </button>
+            </div>
           </div>
         )}
       </div>

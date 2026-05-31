@@ -30,6 +30,11 @@ export function apiRouter(): Router {
   const router = Router();
   router.use(express.json());
 
+  // GET /api/ping - Simple health check endpoint for ShelfLife client connections
+  router.get('/ping', (req, res) => {
+    res.json({ ok: true });
+  });
+
   // GET /api/libraries - Passthrough to ABS
   router.get('/libraries', async (req, res) => {
     try {

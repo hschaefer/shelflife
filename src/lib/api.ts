@@ -27,6 +27,7 @@ class ApiClient {
     const url = await getItem("ABS_URL");
     const token = await getItem("ABS_TOKEN");
     const extraHeadersRaw = await getItem("ABS_EXTRA_HEADERS");
+    const connectionMode = await getItem("CONNECTION_MODE") || (url && token ? "direct" : "server");
     const isNative = Capacitor.isNativePlatform();
 
     let extraHeaders: Record<string, string> = {};
@@ -38,19 +39,19 @@ class ApiClient {
       }
     }
 
-    if (url && token) {
+    if (url && connectionMode === "direct") {
       this.config = {
         url: url.endsWith("/") ? url.slice(0, -1) : url,
-        token,
+        token: token || "",
         isDirect: true,
         extraHeaders,
       };
 
       // Set up direct ABS provider with IndexedDB local caching
-      this.provider = new DirectDataProvider(this.config.url, token, extraHeaders, isNative);
+      this.provider = new DirectDataProvider(this.config.url, this.config.token, extraHeaders, isNative);
 
       const headers: Record<string, string> = {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${this.config.token}`,
       };
 
       if (!isNative) {
@@ -61,6 +62,30 @@ class ApiClient {
         }
       } else {
         // Native: direct
+        Object.assign(headers, extraHeaders);
+      }
+
+      this.client = axios.create({
+        baseURL: isNative ? `${this.config.url}/api` : "/gateway/api",
+        headers,
+      });
+    } else if (url && connectionMode === "server") {
+      // Custom ShelfLife Server connection
+      this.config = {
+        url: url.endsWith("/") ? url.slice(0, -1) : url,
+        token: "",
+        isDirect: false,
+        extraHeaders,
+      };
+
+      this.provider = new ServerDataProvider(this.config.url, "", extraHeaders);
+
+      const headers: Record<string, string> = {};
+      if (!isNative) {
+        if (Object.keys(extraHeaders).length > 0) {
+          headers["X-ABS-Extra-Headers"] = JSON.stringify(extraHeaders);
+        }
+      } else {
         Object.assign(headers, extraHeaders);
       }
 
@@ -121,11 +146,16 @@ class ApiClient {
     return !!this.config?.isDirect;
   }
 
-  // Save direct credentials (and optional extra headers)
-  public async saveConnection(url: string, token: string, extraHeaders?: Record<string, string>) {
+  // Save connection config (supports both direct and server modes)
+  public async saveConnection(url: string, token: string, extraHeaders?: Record<string, string>, connectionMode: "direct" | "server" = "direct") {
     const cleanUrl = url.endsWith("/") ? url.slice(0, -1) : url;
     await setItem("ABS_URL", cleanUrl);
-    await setItem("ABS_TOKEN", token);
+    await setItem("CONNECTION_MODE", connectionMode);
+    if (connectionMode === "direct") {
+      await setItem("ABS_TOKEN", token);
+    } else {
+      await removeItem("ABS_TOKEN");
+    }
     if (extraHeaders && Object.keys(extraHeaders).length > 0) {
       await setItem("ABS_EXTRA_HEADERS", JSON.stringify(extraHeaders));
     } else {
@@ -149,6 +179,7 @@ class ApiClient {
     await removeItem("ABS_URL");
     await removeItem("ABS_TOKEN");
     await removeItem("ABS_EXTRA_HEADERS");
+    await removeItem("CONNECTION_MODE");
     await this.initialize();
   }
 
@@ -211,7 +242,9 @@ class ApiClient {
       if (isNative) {
         if (this.config?.url) {
           const extraHeaders = this.config?.extraHeaders || {};
-          await axios.get(`${this.config.url}/ping`, {
+          const isDirectMode = this.config.isDirect;
+          const pingUrl = isDirectMode ? `${this.config.url}/ping` : `${this.config.url}/api/ping`;
+          await axios.get(pingUrl, {
             timeout: 5000,
             headers: extraHeaders,
           });

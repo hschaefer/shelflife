@@ -25,6 +25,7 @@ interface ConnectionScreenProps {
 }
 
 export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreenProps) {
+  const [connectionType, setConnectionType] = useState<"direct" | "server">("direct");
   const [url, setUrl] = useState("");
   const [authMethod, setAuthMethod] = useState<"credentials" | "token">("credentials");
   const [username, setUsername] = useState("");
@@ -70,58 +71,69 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
             throw new Error("Must be a JSON object");
           }
         } catch {
-          setStatus({ type: "error", message: 'Extra Headers must be valid JSON, e.g. {"CF-Access-Client-Id": "..."}' });
+          setStatus({ type: "error", message: 'Extra Headers must be valid JSON, e.g. {"CF-Access-Client-Id": "...", "CF-Access-Client-Secret": "..."}' });
           setLoading(false);
           return;
         }
       }
 
-      // If credentials auth, fetch token from /api/login
-      if (authMethod === "credentials") {
-        if (!username || !password) {
-          setStatus({ type: "error", message: "Username and password are required." });
-          setLoading(false);
-          return;
-        }
-
-        const isNative = Capacitor.isNativePlatform();
-        const loginUrl = isNative ? `${formattedUrl}/login` : `/gateway/login`;
-
-        const loginRes = await axios.post(
-          loginUrl,
-          { username, password },
-          { 
-            headers: { 
-              "Content-Type": "application/json",
-              ...(isNative ? {} : { "X-Target-URL": formattedUrl }),
-              // Forward extra headers so CF-protected servers accept login
-              ...(parsedExtraHeaders && !isNative
-                ? { "X-ABS-Extra-Headers": JSON.stringify(parsedExtraHeaders) }
-                : parsedExtraHeaders ?? {}),
-            }, 
-            timeout: 8000 
+      if (connectionType === "direct") {
+        // If credentials auth, fetch token from /api/login
+        if (authMethod === "credentials") {
+          if (!username || !password) {
+            setStatus({ type: "error", message: "Username and password are required." });
+            setLoading(false);
+            return;
           }
-        );
 
-        resolvedToken = loginRes.data?.user?.token;
-        if (!resolvedToken) {
-          throw new Error("Could not retrieve authentication token from server.");
+          const isNative = Capacitor.isNativePlatform();
+          const loginUrl = isNative ? `${formattedUrl}/login` : `/gateway/login`;
+
+          const loginRes = await axios.post(
+            loginUrl,
+            { username, password },
+            { 
+              headers: { 
+                "Content-Type": "application/json",
+                ...(isNative ? {} : { "X-Target-URL": formattedUrl }),
+                // Forward extra headers so CF-protected servers accept login
+                ...(parsedExtraHeaders && !isNative
+                  ? { "X-ABS-Extra-Headers": JSON.stringify(parsedExtraHeaders) }
+                  : parsedExtraHeaders ?? {}),
+              }, 
+              timeout: 8000 
+            }
+          );
+
+          resolvedToken = loginRes.data?.user?.token;
+          if (!resolvedToken) {
+            throw new Error("Could not retrieve authentication token from server.");
+          }
+        } else {
+          if (!token) {
+            setStatus({ type: "error", message: "API Token is required." });
+            setLoading(false);
+            return;
+          }
+          resolvedToken = token.trim();
         }
+
+        // Initialize API client temporarily to verify config
+        await api.saveConnection(formattedUrl, resolvedToken, parsedExtraHeaders, "direct");
       } else {
-        if (!token) {
-          setStatus({ type: "error", message: "API Token is required." });
-          setLoading(false);
-          return;
-        }
-        resolvedToken = token.trim();
+        // ShelfLife Server: no token or credentials needed client-side
+        await api.saveConnection(formattedUrl, "", parsedExtraHeaders, "server");
       }
 
-      // Initialize API client temporarily to verify config
-      await api.saveConnection(formattedUrl, resolvedToken, parsedExtraHeaders);
       const health = await api.checkHealth();
 
       if (health.ok) {
-        setStatus({ type: "success", message: "Successfully connected to Audiobookshelf!" });
+        setStatus({ 
+          type: "success", 
+          message: connectionType === "direct" 
+            ? "Successfully connected to Audiobookshelf!" 
+            : "Successfully connected to ShelfLife Server!" 
+        });
         setTimeout(() => {
           onSuccess();
         }, 1200);
@@ -182,12 +194,12 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
             Shelf<span className="text-indigo-600 dark:text-indigo-400">Life</span>
           </h2>
           <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider mt-1.5 font-sans">
-            Connect your Audiobookshelf Server
+            {connectionType === "direct" ? "Connect your Audiobookshelf Server" : "Connect your ShelfLife Server"}
           </p>
         </div>
 
-        {/* Browser security warning — hidden on native/Android */}
-        {!isNative && (
+        {/* Browser security warning — hidden on native/Android and when connecting to ShelfLife Server */}
+        {!isNative && connectionType === "direct" && (
           <div className="mb-5 flex items-start gap-2.5 rounded-2xl border border-amber-100 dark:border-amber-950/20 bg-amber-50/70 dark:bg-amber-950/15 px-4 py-3">
             <ShieldAlert size={15} className="shrink-0 text-amber-600 dark:text-amber-500/60 mt-0.5" />
             <p className="text-[11px] leading-relaxed text-amber-800 dark:text-amber-400/70 font-medium">
@@ -198,16 +210,46 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
         )}
 
         <form onSubmit={handleConnect} className="space-y-5">
+          {/* Connection Type Tab Selector */}
+          <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-950 p-1 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => setConnectionType("direct")}
+              disabled={loading}
+              className={`py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                connectionType === "direct"
+                  ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+              }`}
+            >
+              <Globe size={13} />
+              Direct ABS
+            </button>
+            <button
+              type="button"
+              onClick={() => setConnectionType("server")}
+              disabled={loading}
+              className={`py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                connectionType === "server"
+                  ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+              }`}
+            >
+              <Server size={13} />
+              ShelfLife Server
+            </button>
+          </div>
+
           {/* Server URL Input */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-              Server URL
+              {connectionType === "direct" ? "Audiobookshelf URL" : "ShelfLife Server URL"}
             </label>
             <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 rounded-2xl group focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-950/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
               <Globe size={16} className="text-slate-400 dark:text-slate-550 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
               <input
                 type="text"
-                placeholder="https://abs.example.com"
+                placeholder={connectionType === "direct" ? "https://abs.example.com" : "http://192.168.1.100:3000"}
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 disabled={loading}
@@ -216,117 +258,121 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
               />
             </div>
             <p className="text-[10px] text-slate-400/80 dark:text-slate-500/80 font-medium">
-              E.g. http://192.168.1.50:5000 or domain address
+              {connectionType === "direct" ? "E.g. http://192.168.1.50:5000 or domain address" : "E.g. http://192.168.1.100:3000 or domain address"}
             </p>
           </div>
 
-          {/* Auth Method Selector */}
-          <div className="grid grid-cols-2 gap-2 bg-slate-55 dark:bg-slate-950 p-1 rounded-2xl border border-slate-200 dark:border-slate-808 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-            <button
-              type="button"
-              onClick={() => setAuthMethod("credentials")}
-              disabled={loading}
-              className={`py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                authMethod === "credentials"
-                  ? "bg-white dark:bg-slate-800 text-indigo-650 dark:text-indigo-400 shadow-sm"
-                  : "text-slate-500 dark:text-slate-450 hover:text-slate-800 dark:hover:text-slate-200"
-              }`}
-            >
-              Credentials
-            </button>
-            <button
-              type="button"
-              onClick={() => setAuthMethod("token")}
-              disabled={loading}
-              className={`py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                authMethod === "token"
-                  ? "bg-white dark:bg-slate-800 text-indigo-650 dark:text-indigo-400 shadow-sm"
-                  : "text-slate-500 dark:text-slate-450 hover:text-slate-800 dark:hover:text-slate-200"
-              }`}
-            >
-              API Token
-            </button>
-          </div>
+          {connectionType === "direct" && (
+            <>
+              {/* Auth Method Selector */}
+              <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-950 p-1 rounded-2xl border border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setAuthMethod("credentials")}
+                  disabled={loading}
+                  className={`py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                    authMethod === "credentials"
+                      ? "bg-white dark:bg-slate-800 text-indigo-650 dark:text-indigo-400 shadow-sm"
+                      : "text-slate-500 dark:text-slate-450 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+                >
+                  Credentials
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthMethod("token")}
+                  disabled={loading}
+                  className={`py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                    authMethod === "token"
+                      ? "bg-white dark:bg-slate-800 text-indigo-650 dark:text-indigo-400 shadow-sm"
+                      : "text-slate-500 dark:text-slate-450 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+                >
+                  API Token
+                </button>
+              </div>
 
-          {/* Dynamic Auth Forms */}
-          <AnimatePresence mode="wait">
-            {authMethod === "credentials" ? (
-              <motion.div
-                key="credentials"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                transition={{ duration: 0.2 }}
-                className="space-y-4"
-              >
-                {/* Username */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                    Username
-                  </label>
-                  <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 rounded-2xl group focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-950/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
-                    <User size={16} className="text-slate-400 dark:text-slate-550 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
-                    <input
-                      type="text"
-                      placeholder="Username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      disabled={loading}
-                      className="bg-transparent border-none text-xs font-semibold focus:ring-0 placeholder:text-slate-404 dark:placeholder:text-slate-600 w-full outline-none text-slate-800 dark:text-slate-100"
-                      required={authMethod === "credentials"}
-                    />
-                  </div>
-                </div>
+              {/* Dynamic Auth Forms */}
+              <AnimatePresence mode="wait">
+                {authMethod === "credentials" ? (
+                  <motion.div
+                    key="credentials"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-4"
+                  >
+                    {/* Username */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                        Username
+                      </label>
+                      <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 rounded-2xl group focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-950/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
+                        <User size={16} className="text-slate-400 dark:text-slate-550 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
+                        <input
+                          type="text"
+                          placeholder="Username"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          disabled={loading}
+                          className="bg-transparent border-none text-xs font-semibold focus:ring-0 placeholder:text-slate-404 dark:placeholder:text-slate-600 w-full outline-none text-slate-800 dark:text-slate-100"
+                          required={authMethod === "credentials" && connectionType === "direct"}
+                        />
+                      </div>
+                    </div>
 
-                {/* Password */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                    Password
-                  </label>
-                  <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-955 border border-slate-202 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 rounded-2xl group focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-950/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
-                    <Lock size={16} className="text-slate-400 dark:text-slate-550 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
-                    <input
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={loading}
-                      className="bg-transparent border-none text-xs font-semibold focus:ring-0 placeholder:text-slate-404 dark:placeholder:text-slate-600 w-full outline-none text-slate-800 dark:text-slate-100"
-                      required={authMethod === "credentials"}
-                    />
-                  </div>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="token"
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
-                className="space-y-1.5"
-              >
-                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                  API Token / Personal Access Token
-                </label>
-                <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 rounded-2xl group focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-950/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
-                  <Key size={16} className="text-slate-400 dark:text-slate-550 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
-                  <input
-                    type="password"
-                    placeholder="Paste API token from User Settings"
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                    disabled={loading}
-                    className="bg-transparent border-none text-xs font-semibold focus:ring-0 placeholder:text-slate-404 dark:placeholder:text-slate-600 w-full outline-none text-slate-800 dark:text-slate-100"
-                    required={authMethod === "token"}
-                  />
-                </div>
-                <p className="text-[10px] text-slate-400/80 dark:text-slate-500/80 font-medium">
-                  Can be generated in your Audiobookshelf User Profile under "API Tokens".
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                    {/* Password */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                        Password
+                      </label>
+                      <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 rounded-2xl group focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-950/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
+                        <Lock size={16} className="text-slate-400 dark:text-slate-550 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
+                        <input
+                          type="password"
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          disabled={loading}
+                          className="bg-transparent border-none text-xs font-semibold focus:ring-0 placeholder:text-slate-404 dark:placeholder:text-slate-600 w-full outline-none text-slate-800 dark:text-slate-100"
+                          required={authMethod === "credentials" && connectionType === "direct"}
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="token"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-1.5"
+                  >
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                      API Token / Personal Access Token
+                    </label>
+                    <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 rounded-2xl group focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-950/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
+                      <Key size={16} className="text-slate-400 dark:text-slate-550 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
+                      <input
+                        type="password"
+                        placeholder="Paste API token from User Settings"
+                        value={token}
+                        onChange={(e) => setToken(e.target.value)}
+                        disabled={loading}
+                        className="bg-transparent border-none text-xs font-semibold focus:ring-0 placeholder:text-slate-404 dark:placeholder:text-slate-600 w-full outline-none text-slate-800 dark:text-slate-100"
+                        required={authMethod === "token" && connectionType === "direct"}
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-400/80 dark:text-slate-500/80 font-medium">
+                      Can be generated in your Audiobookshelf User Profile under "API Tokens".
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
+          )}
 
           {/* Advanced / Extra Headers */}
           <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">

@@ -9,7 +9,6 @@ import { DirectDataProvider } from "./direct-data-provider";
 export interface ConnectionConfig {
   url: string;
   token: string;
-  isDirect: boolean;
   extraHeaders: Record<string, string>;
 }
 
@@ -22,116 +21,77 @@ class ApiClient {
     // initialize must be called asynchronously at startup
   }
 
-  // Load connection config from storage or fallback to server env
+  // Load connection config based on platform
   public async initialize() {
-    const url = await getItem("ABS_URL");
-    const token = await getItem("ABS_TOKEN");
-    const extraHeadersRaw = await getItem("ABS_EXTRA_HEADERS");
-    const connectionMode = await getItem("CONNECTION_MODE") || (url && token ? "direct" : "server");
     const isNative = Capacitor.isNativePlatform();
 
-    let extraHeaders: Record<string, string> = {};
-    if (extraHeadersRaw) {
-      try {
-        extraHeaders = JSON.parse(extraHeadersRaw);
-      } catch {
-        console.warn("ABS_EXTRA_HEADERS in storage is not valid JSON — ignoring.");
-      }
-    }
+    if (isNative) {
+      // Android: Load saved direct connection from Capacitor Preferences
+      const url = await getItem("ABS_URL");
+      const token = await getItem("ABS_TOKEN");
+      const extraHeadersRaw = await getItem("ABS_EXTRA_HEADERS");
 
-    if (url && connectionMode === "direct") {
-      this.config = {
-        url: url.endsWith("/") ? url.slice(0, -1) : url,
-        token: token || "",
-        isDirect: true,
-        extraHeaders,
-      };
-
-      // Set up direct ABS provider with IndexedDB local caching
-      this.provider = new DirectDataProvider(this.config.url, this.config.token, extraHeaders, isNative);
-
-      const headers: Record<string, string> = {
-        Authorization: `Bearer ${this.config.token}`,
-      };
-
-      if (!isNative) {
-        // Web: routes through /gateway
-        headers["X-Target-URL"] = this.config.url;
-        if (Object.keys(extraHeaders).length > 0) {
-          headers["X-ABS-Extra-Headers"] = JSON.stringify(extraHeaders);
+      let extraHeaders: Record<string, string> = {};
+      if (extraHeadersRaw) {
+        try {
+          extraHeaders = JSON.parse(extraHeadersRaw);
+        } catch {
+          console.warn("ABS_EXTRA_HEADERS in storage is not valid JSON — ignoring.");
         }
-      } else {
-        // Native: direct
-        Object.assign(headers, extraHeaders);
       }
 
-      this.client = axios.create({
-        baseURL: isNative ? `${this.config.url}/api` : "/gateway/api",
-        headers,
-      });
-    } else if (url && connectionMode === "server") {
-      // Custom ShelfLife Server connection
-      this.config = {
-        url: url.endsWith("/") ? url.slice(0, -1) : url,
-        token: "",
-        isDirect: false,
-        extraHeaders,
-      };
+      if (url && token) {
+        this.config = {
+          url: url.endsWith("/") ? url.slice(0, -1) : url,
+          token,
+          extraHeaders,
+        };
 
-      this.provider = new ServerDataProvider(this.config.url, "", extraHeaders);
+        this.provider = new DirectDataProvider(this.config.url, this.config.token, extraHeaders, true);
 
-      const headers: Record<string, string> = {};
-      if (!isNative) {
-        if (Object.keys(extraHeaders).length > 0) {
-          headers["X-ABS-Extra-Headers"] = JSON.stringify(extraHeaders);
-        }
+        this.client = axios.create({
+          baseURL: `${this.config.url}/api`,
+          headers: {
+            Authorization: `Bearer ${this.config.token}`,
+            ...extraHeaders,
+          },
+        });
       } else {
-        Object.assign(headers, extraHeaders);
+        // Not configured yet — no saved credentials
+        this.config = null;
+        this.provider = null;
+        this.client = null;
       }
-
-      this.client = axios.create({
-        baseURL: isNative ? `${this.config.url}/api` : "/gateway/api",
-        headers,
-      });
     } else {
-      // Proxy Mode Fallback (reads relative from server env via /gateway)
+      // Web: Always use ServerDataProvider — server provides ABS connection via env
+      const serverUrl = window.location.origin;
+
       this.config = {
-        url: isNative ? "http://localhost" : window.location.origin,
+        url: serverUrl,
         token: "",
-        isDirect: false,
-        extraHeaders,
+        extraHeaders: {},
       };
 
-      const serverUrl = isNative ? "http://localhost" : window.location.origin;
-      // Set up cached server provider
-      this.provider = new ServerDataProvider(serverUrl, "", extraHeaders);
-
-      const headers: Record<string, string> = {};
-      if (!isNative) {
-        if (Object.keys(extraHeaders).length > 0) {
-          headers["X-ABS-Extra-Headers"] = JSON.stringify(extraHeaders);
-        }
-      } else {
-        Object.assign(headers, extraHeaders);
-      }
+      this.provider = new ServerDataProvider(serverUrl, "", {});
 
       this.client = axios.create({
-        baseURL: isNative ? "http://localhost/api" : "/gateway/api",
-        headers,
+        baseURL: "/gateway/api",
       });
     }
 
-    this.client.interceptors.response.use((response) => {
-      const contentType = response.headers?.['content-type'];
-      const contentTypeStr = typeof contentType === 'string' ? contentType : '';
-      if (
-        contentTypeStr.includes('text/html') ||
-        (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE'))
-      ) {
-        throw new Error('Upstream returned HTML instead of JSON. This typically indicates a Cloudflare Access or authentication gateway challenge.');
-      }
-      return response;
-    });
+    if (this.client) {
+      this.client.interceptors.response.use((response) => {
+        const contentType = response.headers?.['content-type'];
+        const contentTypeStr = typeof contentType === 'string' ? contentType : '';
+        if (
+          contentTypeStr.includes('text/html') ||
+          (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE'))
+        ) {
+          throw new Error('Upstream returned HTML instead of JSON. This typically indicates a Cloudflare Access or authentication gateway challenge.');
+        }
+        return response;
+      });
+    }
   }
 
   public getProvider(): DataProvider | null {
@@ -142,39 +102,22 @@ class ApiClient {
     return this.config;
   }
 
-  public isDirectMode(): boolean {
-    return !!this.config?.isDirect;
-  }
-
-  // Save connection config (supports both direct and server modes)
-  public async saveConnection(url: string, token: string, extraHeaders?: Record<string, string>, connectionMode: "direct" | "server" = "direct") {
+  // Save connection config (Android only — web uses server env)
+  public async saveConnection(url: string, token: string, extraHeaders?: Record<string, string>) {
     const cleanUrl = url.endsWith("/") ? url.slice(0, -1) : url;
     await setItem("ABS_URL", cleanUrl);
-    await setItem("CONNECTION_MODE", connectionMode);
-    if (connectionMode === "direct") {
-      await setItem("ABS_TOKEN", token);
-    } else {
-      await removeItem("ABS_TOKEN");
-    }
+    await setItem("ABS_TOKEN", token);
     if (extraHeaders && Object.keys(extraHeaders).length > 0) {
       await setItem("ABS_EXTRA_HEADERS", JSON.stringify(extraHeaders));
     } else {
       await removeItem("ABS_EXTRA_HEADERS");
     }
+    // Clean up legacy key
+    await removeItem("CONNECTION_MODE");
     await this.initialize();
   }
 
-  // Save extra headers separately (e.g. from Settings)
-  public async saveExtraHeaders(extraHeaders: Record<string, string>) {
-    if (Object.keys(extraHeaders).length > 0) {
-      await setItem("ABS_EXTRA_HEADERS", JSON.stringify(extraHeaders));
-    } else {
-      await removeItem("ABS_EXTRA_HEADERS");
-    }
-    await this.initialize();
-  }
-
-  // Clear credentials (logout)
+  // Clear credentials (Android only — web has no client-side credentials)
   public async disconnect() {
     await removeItem("ABS_URL");
     await removeItem("ABS_TOKEN");
@@ -183,7 +126,7 @@ class ApiClient {
     await this.initialize();
   }
 
-  // Get cover path dynamically based on connection mode
+  // Get cover path dynamically based on platform
   public getCoverPath(itemId: string): string {
     const isNative = Capacitor.isNativePlatform();
     if (isNative && this.config?.url) {
@@ -198,28 +141,16 @@ class ApiClient {
     const coverPath = this.getCoverPath(itemId);
     try {
       const headers: Record<string, string> = {};
-      if (!isNative) {
-        // Web: through gateway
-        if (this.config?.isDirect && this.config.url) {
-          headers["X-Target-URL"] = this.config.url;
-          if (this.config.token) {
-            headers["Authorization"] = `Bearer ${this.config.token}`;
-          }
-        }
-        const extraHeaders = this.config?.extraHeaders || {};
-        if (Object.keys(extraHeaders).length > 0) {
-          headers["X-ABS-Extra-Headers"] = JSON.stringify(extraHeaders);
-        }
-      } else {
-        // Native: direct request
-        if (this.config?.token) {
+      if (isNative && this.config) {
+        if (this.config.token) {
           headers["Authorization"] = `Bearer ${this.config.token}`;
         }
-        const extraHeaders = this.config?.extraHeaders || {};
+        const extraHeaders = this.config.extraHeaders || {};
         if (Object.keys(extraHeaders).length > 0) {
           Object.assign(headers, extraHeaders);
         }
       }
+      // Web: no extra headers needed — gateway proxy handles auth
       const response = await fetch(coverPath, { headers });
       if (!response.ok) return null;
       const blob = await response.blob();
@@ -241,30 +172,16 @@ class ApiClient {
     try {
       if (isNative) {
         if (this.config?.url) {
-          const extraHeaders = this.config?.extraHeaders || {};
-          const isDirectMode = this.config.isDirect;
-          const pingUrl = isDirectMode ? `${this.config.url}/ping` : `${this.config.url}/api/ping`;
-          await axios.get(pingUrl, {
+          await axios.get(`${this.config.url}/ping`, {
             timeout: 5000,
-            headers: extraHeaders,
+            headers: this.config.extraHeaders || {},
           });
         } else {
           return { ok: false, error: "No URL configured" };
         }
       } else {
-        // Web: ping the target via the gateway
-        const headers: Record<string, string> = {};
-        if (this.config?.isDirect && this.config.url) {
-          headers["X-Target-URL"] = this.config.url;
-        }
-        const extraHeaders = this.config?.extraHeaders || {};
-        if (Object.keys(extraHeaders).length > 0) {
-          headers["X-ABS-Extra-Headers"] = JSON.stringify(extraHeaders);
-        }
-        await axios.get("/gateway/ping", {
-          timeout: 5000,
-          headers,
-        });
+        // Web: ping upstream ABS via the gateway proxy
+        await axios.get("/gateway/ping", { timeout: 5000 });
       }
 
       // Test credentials/token by loading libraries

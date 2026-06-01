@@ -23,8 +23,8 @@ export function SettingsView({
   onSyncComplete
 }: SettingsViewProps) {
   const config = api.getConfig();
-  const isDirect = api.isDirectMode();
   const isNative = Capacitor.isNativePlatform();
+  const isDirect = isNative;
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSyncSuccess, setIsSyncSuccess] = useState(false);
@@ -93,16 +93,14 @@ export function SettingsView({
               <div className="space-y-1">
                 <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Connection Profile</span>
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isDirect 
-                    ? (isNative 
-                        ? 'Direct Client API (Android Native)' 
-                        : 'Forwarded Client (Browser Proxy)')
-                    : 'Default Host (Server Auth Proxy)'}
+                  {isNative 
+                    ? 'Direct Client API (Android Native)' 
+                    : 'Server Authenticated Proxy'}
                 </span>
               </div>
 
               
-              {hasExtraHeaders && (
+              {isDirect && hasExtraHeaders && (
                 <div className="space-y-1 pt-1">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Active Auth Headers</span>
@@ -124,7 +122,7 @@ export function SettingsView({
             </div>
           </div>
 
-          {onDisconnect && (
+          {onDisconnect && isDirect && (
             <button 
               onClick={onDisconnect}
               className="w-full py-2.5 bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-500 border border-rose-100 dark:border-rose-950/30 hover:bg-rose-100/70 dark:hover:bg-rose-900/20 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-sm mt-4 cursor-pointer active:scale-98"

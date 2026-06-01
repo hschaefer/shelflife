@@ -4,7 +4,6 @@ import path from "path";
 import axios from "axios";
 import dotenv from "dotenv";
 import { createProxyMiddleware } from "http-proxy-middleware";
-import type { IncomingMessage } from "http";
 import { initDatabase } from "./server/db.js";
 import { apiRouter } from "./server/api-routes.js";
 import { startSyncService } from "./server/sync.js";
@@ -47,17 +46,6 @@ async function startServer() {
     console.error("WARNING: Audiobookshelf URL and Token are not configured.");
   }
 
-  // Parse client-supplied extra headers forwarded as X-ABS-Extra-Headers JSON
-  // Accepts both express.Request and raw IncomingMessage (used in proxy callbacks)
-  function parseClientExtraHeaders(req: { headers: IncomingMessage['headers'] }): Record<string, string> {
-    const raw = req.headers['x-abs-extra-headers'];
-    if (!raw || typeof raw !== 'string') return {};
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return {};
-    }
-  }
 
   // Format dynamic proxy error messages nicely
   function formatError(error: any): string {
@@ -71,33 +59,18 @@ async function startServer() {
   // Always mount the generic gateway proxy middleware so all client calls (API + images) are proxied statelessly
   app.use("/gateway", createProxyMiddleware({
     target: ABS_URL || "http://localhost:13378",
-    router: (req) => {
-      const xTargetUrl = req.headers['x-target-url'];
-      if (typeof xTargetUrl === 'string' && xTargetUrl) {
-        return xTargetUrl.endsWith('/') ? xTargetUrl.slice(0, -1) : xTargetUrl;
-      }
-      return ABS_URL || undefined;
-    },
     changeOrigin: true,
     pathRewrite: {
       '^/gateway': ''
     },
     on: {
-      proxyReq: (proxyReq, req) => {
-        // Inject env-level extra headers first, then client-supplied ones
-        const clientExtra = parseClientExtraHeaders(req);
-        const merged = { ...envExtraHeaders, ...clientExtra };
-        for (const [key, value] of Object.entries(merged)) {
+      proxyReq: (proxyReq) => {
+        // Inject env-level extra headers
+        for (const [key, value] of Object.entries(envExtraHeaders)) {
           proxyReq.setHeader(key, value);
         }
-        
-        // Remove temporary routing headers so they don't leak upstream
-        proxyReq.removeHeader('x-target-url');
-        proxyReq.removeHeader('x-abs-extra-headers');
-        
-        // If client sends Authorization header, keep it. Otherwise, use ABS_TOKEN if configured.
-        const clientAuth = req.headers['authorization'];
-        if (!clientAuth && ABS_TOKEN) {
+        // Always authenticate with server-configured token
+        if (ABS_TOKEN) {
           proxyReq.setHeader('Authorization', `Bearer ${ABS_TOKEN}`);
         }
       },

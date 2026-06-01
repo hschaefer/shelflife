@@ -199,8 +199,3 @@ If you prefer to compile manually, follow these steps:
 > 
 > 1. **Deploy behind an Authentication Layer**: Always place the ShelfLife web server behind a secure reverse proxy (e.g., Caddy, Nginx, or a Cloudflare Tunnel) that terminates TLS/HTTPS and enforces access control (such as Basic Auth, Authelia, or Cloudflare Access).
 > 2. **Limit Network Access**: Alternatively, restrict hosting to a private local network (LAN) or access the dashboard remotely via a secure VPN (WireGuard, Tailscale).
-> 3. **Use Environment Variables**: For standard deployments, configure `ABS_URL` and `ABS_TOKEN` directly in your server's `.env` file. This prevents credentials from being stored in the browser's `localStorage` or transmitted during client logins.
-> 
-> *For Android users, the mobile app connects directly to your ABS instance, and there is no web app or proxy server exposed.*
-
-

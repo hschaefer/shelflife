@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { TextZoom } from "@capacitor/text-zoom";
+import { Capacitor } from "@capacitor/core";
 import { 
   Users, 
   Library as LibraryIcon, 
@@ -157,7 +158,7 @@ export default function App() {
       setError(null);
 
       // In proxy mode, trigger and await the upstream sync from Audiobookshelf before fetching fresh data
-      if (!api.isDirectMode() && !isInitial) {
+      if (!Capacitor.isNativePlatform() && !isInitial) {
         try {
           await api.triggerSync(undefined, false, true);
         } catch (syncErr) {
@@ -267,18 +268,33 @@ export default function App() {
   useEffect(() => {
     async function discoverConnection() {
       await api.initialize();
-      const conn = api.getConfig();
-      if (conn?.isDirect) {
-        setIsConfigured(true);
-        fetchData(true);
+      const isNative = Capacitor.isNativePlatform();
+      
+      if (isNative) {
+        const conn = api.getConfig();
+        if (conn?.url && conn?.token) {
+          const health = await api.checkHealth();
+          if (health.ok) {
+            setIsConfigured(true);
+            fetchData(true);
+          } else {
+            // Android connection error (e.g. offline or bad token)
+            setError(health.error || "Failed to reach Audiobookshelf server.");
+            setIsConfigured(true);
+            setLoading(false);
+            setSessionsLoading(false);
+            setDashboardLoading(false);
+          }
+        } else {
+          setIsConfigured(false);
+        }
       } else {
-        // If not direct, see if the Node proxy server is running and healthy
+        // Web: Server mode only. Try to connect to proxy/gateway
         const health = await api.checkHealth();
         if (health.ok) {
           setIsConfigured(true);
           fetchData(true);
         } else {
-          // If proxy fails, we boot to the manual onboarding interface
           setIsConfigured(false);
         }
       }
@@ -340,6 +356,70 @@ export default function App() {
   }
 
   if (isConfigured === false) {
+    if (!Capacitor.isNativePlatform()) {
+      return (
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6 font-sans relative overflow-hidden">
+          {/* Subtle gradient background blur */}
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-[100px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-600/5 rounded-full blur-[100px]" />
+
+          {/* Theme switcher top right */}
+          <div className="absolute top-6 right-6">
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all shadow-sm cursor-pointer"
+              title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+          </div>
+
+          <div className="max-w-xl w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-8 sm:p-12 text-center relative z-10">
+            <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+              <Activity size={32} className="animate-pulse" />
+            </div>
+            
+            <h2 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight mb-4">
+              Shelf<span className="text-indigo-600 dark:text-indigo-400">Life</span> Setup Required
+            </h2>
+            
+            <p className="text-slate-600 dark:text-slate-400 mb-8 leading-relaxed max-w-md mx-auto text-sm">
+              Your ShelfLife server is running, but it has not been configured to connect to an Audiobookshelf instance.
+              Please configure the backend by setting the environment variables.
+            </p>
+
+            <div className="bg-slate-100 dark:bg-slate-950 rounded-2xl p-6 mb-8 text-left border border-slate-200/50 dark:border-slate-800/50 relative group">
+              <div className="absolute top-3 right-3 text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
+                .env config
+              </div>
+              <pre className="font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto space-y-1">
+                <code>
+                  <div><span className="text-indigo-600 dark:text-indigo-400 font-semibold">ABS_URL</span>=https://your-audiobookshelf-server.com</div>
+                  <div><span className="text-indigo-600 dark:text-indigo-400 font-semibold">ABS_TOKEN</span>=your_audiobookshelf_api_token</div>
+                </code>
+              </pre>
+            </div>
+
+            <button 
+              onClick={async () => {
+                setLoading(true);
+                const health = await api.checkHealth();
+                if (health.ok) {
+                  setIsConfigured(true);
+                  fetchData(true);
+                } else {
+                  setLoading(false);
+                }
+              }}
+              className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold uppercase tracking-widest transition-all shadow-lg shadow-indigo-100 dark:shadow-none cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+            >
+              Check Server Configuration
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return <ConnectionScreen isDark={darkMode} onSuccess={() => {
       setIsConfigured(true);
       fetchData(true);
@@ -370,19 +450,21 @@ export default function App() {
             {error}
           </p>
           <div className="flex flex-col gap-3">
-            <button 
-              onClick={async () => {
-                await api.disconnect();
-                setIsConfigured(false);
-                setError(null);
-              }}
-              className="w-full py-3 bg-indigo-600 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-indigo-700 transition-colors shadow-md"
-            >
-              Reconfigure Connection
-            </button>
+            {Capacitor.isNativePlatform() && (
+              <button 
+                onClick={async () => {
+                  await api.disconnect();
+                  setIsConfigured(false);
+                  setError(null);
+                }}
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest transition-colors shadow-md cursor-pointer animate-fade-in"
+              >
+                Reconfigure Connection
+              </button>
+            )}
             <button 
               onClick={() => fetchData(true)}
-              className="w-full py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              className="w-full py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             >
               Retry Connection
             </button>

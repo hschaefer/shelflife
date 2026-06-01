@@ -27,11 +27,6 @@ export class ServerDataProvider implements DataProvider {
     // Config for passthrough requests via proxy (/gateway/api)
     const gatewayBase = isRelative ? '/gateway/api' : `${serverUrl}/gateway/api`;
     const gatewayHeaders: Record<string, string> = { ...headers };
-    
-    // Inject Target URL headers if we are using custom URL in browser mode
-    if (isRelative && serverUrl && serverUrl !== window.location.origin) {
-      gatewayHeaders['X-Target-URL'] = serverUrl;
-    }
 
     this.gatewayClient = axios.create({
       baseURL: gatewayBase,

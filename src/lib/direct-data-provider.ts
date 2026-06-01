@@ -1,11 +1,12 @@
 import axios, { AxiosInstance } from 'axios';
 import { DataProvider, LibraryItemsQuery, LibraryItemsResponse } from './data-provider';
 import { Library, Book, User, Session, UserStats } from '../types';
+import { getItem } from './storage';
 
 // Zero-dependency IndexedDB wrapper
 class IndexedDbWrapper {
   private dbName = 'shelflife_client_db';
-  private dbVersion = 1;
+  private dbVersion = 2;
 
   private openDb(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
@@ -20,6 +21,10 @@ class IndexedDbWrapper {
           const store = db.createObjectStore('library_items', { keyPath: 'id' });
           store.createIndex('library_id', 'libraryId', { unique: false });
           store.createIndex('added_at', 'addedAt', { unique: false });
+        }
+        if (!db.objectStoreNames.contains('sessions')) {
+          const store = db.createObjectStore('sessions', { keyPath: 'id' });
+          store.createIndex('started_at', 'startedAt', { unique: false });
         }
       };
     });
@@ -82,6 +87,45 @@ class IndexedDbWrapper {
       for (const item of toDelete) {
         store.delete(item.id);
       }
+    });
+  }
+
+  public async putSessions(sessions: Session[]): Promise<void> {
+    const db = await this.openDb();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('sessions', 'readwrite');
+      const store = transaction.objectStore('sessions');
+
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+
+      for (const session of sessions) {
+        store.put(session);
+      }
+    });
+  }
+
+  public async getAllSessions(): Promise<Session[]> {
+    const db = await this.openDb();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('sessions', 'readonly');
+      const store = transaction.objectStore('sessions');
+      const request = store.getAll();
+
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  public async clearSessions(): Promise<void> {
+    const db = await this.openDb();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('sessions', 'readwrite');
+      const store = transaction.objectStore('sessions');
+      const request = store.clear();
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
     });
   }
 }
@@ -207,14 +251,44 @@ export class DirectDataProvider implements DataProvider {
   }
 
   public async getSessions(params: any): Promise<{ sessions: Session[]; total?: number }> {
-    // Sessions remain pass-through in Direct Mode
-    // Audiobookshelf's API uses 'itemsPerPage' instead of 'limit' for session pagination.
-    const requestParams = { ...params };
-    if (requestParams.limit !== undefined && requestParams.itemsPerPage === undefined) {
-      requestParams.itemsPerPage = requestParams.limit;
+    const syncSessions = (await getItem("ABS_SYNC_SESSIONS")) === "true";
+
+    if (syncSessions) {
+      const requestParams = { ...params };
+      if (requestParams.limit !== undefined && requestParams.itemsPerPage === undefined) {
+        requestParams.itemsPerPage = requestParams.limit;
+      }
+      try {
+        const response = await this.client.get('/sessions', { params: requestParams });
+        const freshSessions = response.data?.sessions || [];
+        if (freshSessions.length > 0) {
+          await this.db.putSessions(freshSessions);
+        }
+        return response.data;
+      } catch (error) {
+        console.warn("[DirectCache] Failed to fetch sessions online, falling back to local cache:", error);
+        const cachedSessions = await this.db.getAllSessions();
+        const sorted = [...cachedSessions].sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
+        
+        const limit = params.limit !== undefined ? params.limit : (params.itemsPerPage !== undefined ? params.itemsPerPage : 500);
+        const page = params.page || 0;
+        const offset = page * limit;
+        const paginated = sorted.slice(offset, offset + limit);
+
+        return {
+          sessions: paginated,
+          total: sorted.length
+        };
+      }
+    } else {
+      // Sessions remain pass-through in Direct Mode if syncSessions is not enabled
+      const requestParams = { ...params };
+      if (requestParams.limit !== undefined && requestParams.itemsPerPage === undefined) {
+        requestParams.itemsPerPage = requestParams.limit;
+      }
+      const response = await this.client.get('/sessions', { params: requestParams });
+      return response.data;
     }
-    const response = await this.client.get('/sessions', { params: requestParams });
-    return response.data;
   }
 
   public async getOnlineUsers(): Promise<any> {
@@ -525,15 +599,18 @@ export class DirectDataProvider implements DataProvider {
   }
 
   public async getSyncStatus(): Promise<any> {
+    const syncSessions = (await getItem("ABS_SYNC_SESSIONS")) === "true";
     return {
       lastSync: this.syncState['global']?.lastSync || Date.now(),
       itemsCached: (await this.db.getAllItems()).length,
-      sessionsCached: 0,
+      sessionsCached: syncSessions ? (await this.db.getAllSessions()).length : 0,
       libraries: []
     };
   }
 
   public async triggerSync(libraryId?: string, forceFull = false, awaitSync = true): Promise<any> {
+    const syncSessions = (await getItem("ABS_SYNC_SESSIONS")) === "true";
+
     if (libraryId) {
       if (forceFull) {
         await this.runFullSync(libraryId);
@@ -547,7 +624,29 @@ export class DirectDataProvider implements DataProvider {
         await this.runFullSync(lib.id);
       }
     }
+
+    if (syncSessions) {
+      await this.runSessionSync();
+    }
+
     return { success: true };
+  }
+
+  private async runSessionSync(): Promise<void> {
+    try {
+      console.log("[DirectCache] Syncing sessions to device...");
+      const response = await this.client.get('/sessions', {
+        params: { itemsPerPage: 500, sort: 'startedAt', desc: '1' }
+      });
+      const sessions = response.data?.sessions || [];
+      if (sessions.length > 0) {
+        await this.db.clearSessions();
+        await this.db.putSessions(sessions);
+        console.log(`[DirectCache] Cached ${sessions.length} sessions successfully.`);
+      }
+    } catch (err) {
+      console.error("[DirectCache] Failed to sync sessions:", err);
+    }
   }
 
   // Delta sync functions

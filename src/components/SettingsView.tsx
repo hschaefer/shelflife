@@ -5,6 +5,7 @@ import { api } from "../lib/api";
 import { cn } from "../lib/utils";
 import packageJson from "../../package.json";
 import { Capacitor } from "@capacitor/core";
+import { getItem, setItem } from "../lib/storage";
 
 interface SettingsViewProps {
   onDisconnect?: () => void;
@@ -29,10 +30,31 @@ export function SettingsView({
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSyncSuccess, setIsSyncSuccess] = useState(false);
   const [localSyncStatus, setLocalSyncStatus] = useState<any>(syncStatus);
+  const [syncSessionsEnabled, setSyncSessionsEnabled] = useState(false);
 
   useEffect(() => {
     setLocalSyncStatus(syncStatus);
   }, [syncStatus]);
+
+  useEffect(() => {
+    async function loadSyncSessions() {
+      const saved = await getItem("ABS_SYNC_SESSIONS");
+      setSyncSessionsEnabled(saved === "true");
+    }
+    if (isDirect) {
+      loadSyncSessions();
+    }
+  }, [isDirect]);
+
+  const handleToggleSyncSessions = async (enabled: boolean) => {
+    setSyncSessionsEnabled(enabled);
+    await setItem("ABS_SYNC_SESSIONS", enabled ? "true" : "false");
+    const freshStatus = await api.getSyncStatus();
+    setLocalSyncStatus(freshStatus);
+    if (onSyncComplete) {
+      await onSyncComplete(freshStatus);
+    }
+  };
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -167,13 +189,43 @@ export function SettingsView({
                   <History className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 group-hover:scale-110 transition-transform" />
                 </div>
                 <span className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
-                  {isDirect ? "N/A" : (localSyncStatus?.sessionsCached ?? 0)}
+                  {isDirect 
+                    ? (syncSessionsEnabled ? (localSyncStatus?.sessionsCached ?? 0) : "Disabled")
+                    : (localSyncStatus?.sessionsCached ?? 0)}
                 </span>
                 <span className="text-[8px] text-slate-400 dark:text-slate-500 font-medium">
-                  {isDirect ? "Direct Connect mode" : "Sessions in local cache"}
+                  {isDirect 
+                    ? (syncSessionsEnabled ? "Sessions in local cache" : "Direct Connect mode")
+                    : "Sessions in local cache"}
                 </span>
               </div>
             </div>
+
+            {/* Sync Session Data Preference Toggle Switch (Android Native / Direct connection mode only) */}
+            {isDirect && (
+              <div className="flex items-center justify-between py-3 px-3 mb-4 bg-slate-50 dark:bg-slate-950 border border-slate-200/50 dark:border-slate-850 rounded-xl transition-all hover:border-slate-300 dark:hover:border-slate-800">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Sync Session Data</span>
+                  <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">
+                    Cache listening sessions locally for offline stats
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleToggleSyncSessions(!syncSessionsEnabled)}
+                  className={cn(
+                    "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                    syncSessionsEnabled ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-800"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                      syncSessionsEnabled ? "translate-x-4" : "translate-x-0"
+                    )}
+                  />
+                </button>
+              </div>
+            )}
 
             {/* Last Synced Row */}
             <div className="flex items-center justify-between text-xs font-semibold py-2.5 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200/50 dark:border-slate-850 rounded-xl">

@@ -339,7 +339,7 @@ export async function syncSessions(forceFull = false): Promise<void> {
       transformed.push({
         id: session.id,
         user_id: session.userId,
-        username: session.username || 'Unknown User',
+        username: session.user?.username || session.username || 'Unknown User',
         library_id: session.libraryId || null,
         library_item_id: session.libraryItemId || null,
         duration: parseFloat(session.duration || 0),

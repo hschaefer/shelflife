@@ -405,7 +405,7 @@ export function apiRouter(): Router {
           if (!groups[uId]) {
             groups[uId] = {
               userId: uId,
-              username: session.username || "Unknown",
+              username: session.user?.username || session.username || "Unknown",
               mostRecentActiveTime: session.startedAt,
               totalTime: 0,
               uniqueBooks: []

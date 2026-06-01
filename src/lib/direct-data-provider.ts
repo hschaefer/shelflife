@@ -252,7 +252,7 @@ export class DirectDataProvider implements DataProvider {
       if (!statsMap[userId]) {
         statsMap[userId] = {
           userId,
-          username: userMap[userId] || session.username || userId,
+          username: userMap[userId] || session.user?.username || session.username || userId,
           totalTime: 0,
           avgDaily: 0,
           activity: {},
@@ -474,7 +474,7 @@ export class DirectDataProvider implements DataProvider {
         if (!groups[uId]) {
           groups[uId] = {
             userId: uId,
-            username: session.username || "Unknown",
+            username: session.user?.username || session.username || "Unknown",
             mostRecentActiveTime: session.startedAt,
             totalTime: 0,
             uniqueBooks: []

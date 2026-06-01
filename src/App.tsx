@@ -202,7 +202,7 @@ export default function App() {
         .filter(isRecentlyActive)
         .map((s: any) => ({
           ...s,
-          username: s.username || userMap[s.userId] || s.userId,
+          username: s.user?.username || s.username || userMap[s.userId] || s.userId,
         }));
       setActiveSessions(openSessions);
       
@@ -329,7 +329,7 @@ export default function App() {
           .filter(isRecentlyActive)
           .map((s: any) => ({
             ...s,
-            username: s.username || onlineUserMap[s.userId] || s.userId,
+            username: s.user?.username || s.username || onlineUserMap[s.userId] || s.userId,
           }));
         setActiveSessions(openSessions);
       } catch (e) {

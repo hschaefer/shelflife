@@ -23,20 +23,32 @@ import { Capacitor } from "@capacitor/core";
 interface DashboardViewProps {
   recentBooks: Book[];
   totalBooks: number;
-  sessions: Session[];
+  dashboardStats: any;
+  dashboardLoading: boolean;
+  dashboardTimeframe: "7" | "30" | "365" | "all";
+  onTimeframeChange: (timeframe: "7" | "30" | "365" | "all") => void;
   userStats: UserStats[];
   libraries: Library[];
   activeSessions: Session[];
-  sessionsLoading: boolean;
   isDark?: boolean;
 }
 
 export function DashboardView({ 
-  recentBooks, totalBooks, sessions, userStats, libraries, activeSessions, sessionsLoading, isDark = false
+  recentBooks, 
+  totalBooks, 
+  dashboardStats, 
+  dashboardLoading, 
+  dashboardTimeframe, 
+  onTimeframeChange, 
+  userStats, 
+  libraries, 
+  activeSessions, 
+  isDark = false
 }: DashboardViewProps) {
   const isAndroid = Capacitor.getPlatform() === 'android';
   const [chartType, setChartType] = useState<'line' | 'bar'>('bar');
-  const [timeframe, setTimeframe] = useState<'7' | '30' | '365' | 'all'>('30');
+  const timeframe = dashboardTimeframe;
+  const setTimeframe = onTimeframeChange;
   const [recentActivityWindow, setRecentActivityWindow] = useState<'1' | '7'>('7');
   const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>({});
   const [selectedBookForDetails, setSelectedBookForDetails] = useState<Book | null>(null);
@@ -45,12 +57,6 @@ export function DashboardView({
   // States for search
   const [livePlaybackSearch, setLivePlaybackSearch] = useState("");
   const [recentActivitySearch, setRecentActivitySearch] = useState("");
-
-  const filteredSessions = useMemo(() => {
-    if (timeframe === 'all') return sessions;
-    const cutoff = subDays(new Date(), parseInt(timeframe));
-    return sessions.filter(s => isAfter(new Date(s.startedAt), cutoff));
-  }, [sessions, timeframe]);
 
   const filteredActiveSessions = useMemo(() => {
     if (!livePlaybackSearch.trim()) return activeSessions;
@@ -63,46 +69,12 @@ export function DashboardView({
   }, [activeSessions, livePlaybackSearch]);
 
   const topAuthors = useMemo(() => {
-    const authorTimeMap: Record<string, number> = {};
-    filteredSessions.forEach(session => {
-      const author = (session as any).mediaMetadata?.authorName || 
-                     (session as any).mediaMetadata?.author || 
-                     (session as any).displayAuthor ||
-                     "Unknown Author";
-      const listeningTime = session.timeListening || session.duration || 0;
-      authorTimeMap[author] = (authorTimeMap[author] || 0) + listeningTime;
-    });
-
-    return Object.entries(authorTimeMap)
-      .map(([name, time]) => ({ name, time }))
-      .sort((a, b) => b.time - a.time)
-      .slice(0, 5);
-  }, [filteredSessions]);
+    return dashboardStats?.topAuthors || [];
+  }, [dashboardStats]);
 
   const topGenres = useMemo(() => {
-    const genreTimeMap: Record<string, number> = {};
-    filteredSessions.forEach(session => {
-      const genres = (session as any).mediaMetadata?.genres || 
-                     (session as any).mediaMetadata?.genre || 
-                     [];
-      const listeningTime = session.timeListening || session.duration || 0;
-      
-      if (Array.isArray(genres)) {
-        genres.forEach((g: string) => {
-          if (g) {
-            genreTimeMap[g] = (genreTimeMap[g] || 0) + listeningTime;
-          }
-        });
-      } else if (typeof genres === "string" && genres) {
-        genreTimeMap[genres] = (genreTimeMap[genres] || 0) + listeningTime;
-      }
-    });
-
-    return Object.entries(genreTimeMap)
-      .map(([name, time]) => ({ name, time }))
-      .sort((a, b) => b.time - a.time)
-      .slice(0, 5);
-  }, [filteredSessions]);
+    return dashboardStats?.topGenres || [];
+  }, [dashboardStats]);
 
   const getGenreStyle = (genre: string) => {
     const styles = [
@@ -121,54 +93,12 @@ export function DashboardView({
   };
 
   const lineChartData = useMemo(() => {
-    const activity: Record<string, any> = {};
-    
-    filteredSessions.forEach(session => {
-      const dateStr = format(session.startedAt, "MM/dd");
-      const listeningTime = (session.timeListening || session.duration || 0) / 3600;
-
-      if (!activity[dateStr]) {
-        activity[dateStr] = { date: dateStr, hours: 0 };
-      }
-
-      activity[dateStr].hours += listeningTime;
-    });
-
-    return Object.values(activity)
-      .map(entry => {
-        const newEntry = { ...entry };
-        newEntry.hours = parseFloat(entry.hours.toFixed(1));
-        return newEntry;
-      })
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }, [filteredSessions]);
+    return dashboardStats?.lineChartData || [];
+  }, [dashboardStats]);
 
   const hourlyActivityData = useMemo(() => {
-    const cutoff = subDays(new Date(), 14).getTime();
-    const recentSessions = sessions.filter(s => s.startedAt >= cutoff);
-
-    const activity: Record<number, any> = {};
-    for (let h = 0; h < 24; h++) {
-      const label = `${h.toString().padStart(2, '0')}:00`;
-      activity[h] = { hour: h, label, hours: 0 };
-    }
-
-    recentSessions.forEach(session => {
-      const date = new Date(session.startedAt);
-      const hour = date.getHours();
-      const listeningTime = (session.timeListening || session.duration || 0) / 3600;
-
-      activity[hour].hours += listeningTime;
-    });
-
-    return Object.values(activity)
-      .map((entry: any) => {
-        const newEntry = { ...entry };
-        newEntry.hours = parseFloat(entry.hours.toFixed(1));
-        return newEntry;
-      })
-      .sort((a: any, b: any) => a.hour - b.hour);
-  }, [sessions]);
+    return dashboardStats?.hourlyActivityData || [];
+  }, [dashboardStats]);
 
   const toggleUserExpanded = (userId: string) => {
     setExpandedUsers(prev => {
@@ -181,74 +111,11 @@ export function DashboardView({
   };
 
   const last7DaysActivitiesGrouped = useMemo(() => {
-    const days = parseInt(recentActivityWindow);
-    const cutoff = days === 1
-      ? (Date.now() - 24 * 60 * 60 * 1000)
-      : subDays(new Date(), 7).getTime();
-    const recentSessions = sessions.filter(s => s.startedAt >= cutoff);
-
-    // Build userId -> username lookup map from userStats
-    const usernameMap: Record<string, string> = {};
-    userStats.forEach(u => {
-      usernameMap[u.userId] = u.username;
-    });
-
-    const groups: Record<string, { 
-      userId: string; 
-      username: string; 
-      mostRecentActiveTime: number; 
-      totalTime: number;
-      uniqueBooks: { 
-        title: string; 
-        lastSession: Session; 
-      }[];
-    }> = {};
-
-    recentSessions.forEach(session => {
-      const uId = session.userId;
-      const title = session.displayTitle || session.mediaItemTitle || "Unknown Book";
-      const time = session.timeListening || session.duration || 0;
-
-      if (!groups[uId]) {
-        groups[uId] = {
-          userId: uId,
-          username: usernameMap[uId] || session.username || "Unknown",
-          mostRecentActiveTime: session.startedAt,
-          totalTime: 0,
-          uniqueBooks: []
-        };
-      }
-
-      groups[uId].totalTime += time;
-      if (session.startedAt > groups[uId].mostRecentActiveTime) {
-        groups[uId].mostRecentActiveTime = session.startedAt;
-      }
-
-      const existingBook = groups[uId].uniqueBooks.find(b => b.title.toLowerCase() === title.toLowerCase());
-      if (!existingBook) {
-        groups[uId].uniqueBooks.push({
-          title,
-          lastSession: session
-        });
-      } else {
-        if (session.startedAt > existingBook.lastSession.startedAt) {
-          existingBook.lastSession = session;
-        }
-      }
-    });
-
-    const groupedList = Object.values(groups).map(g => {
-      g.uniqueBooks.sort((a, b) => b.lastSession.startedAt - a.lastSession.startedAt);
-      return {
-        ...g,
-        uniqueBooks: g.uniqueBooks.slice(0, 3)
-      };
-    });
-
-    groupedList.sort((a, b) => b.mostRecentActiveTime - a.mostRecentActiveTime);
-
-    return groupedList;
-  }, [sessions, userStats, recentActivityWindow]);
+    if (!dashboardStats) return [];
+    return recentActivityWindow === '1'
+      ? (dashboardStats.recentActivity1d || [])
+      : (dashboardStats.recentActivity7d || []);
+  }, [dashboardStats, recentActivityWindow]);
 
   const filteredRecentActivityGrouped = useMemo(() => {
     if (!recentActivitySearch.trim()) return last7DaysActivitiesGrouped;
@@ -361,7 +228,7 @@ export function DashboardView({
 
         <div className={cn(
           "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col transition-all duration-300",
-          (sessionsLoading || filteredRecentActivityGrouped.length > 1)
+          (dashboardLoading || filteredRecentActivityGrouped.length > 1)
             ? "h-[400px]" 
             : "h-auto min-h-[180px] lg:h-[400px]"
         )}>
@@ -404,7 +271,7 @@ export function DashboardView({
           </div>
           
           <div className="flex-grow overflow-y-auto no-scrollbar flex flex-col gap-3 pr-1">
-            {sessionsLoading ? (
+            {dashboardLoading ? (
               Array.from({ length: 3 }).map((_, idx) => (
                 <div key={idx} className="flex flex-col gap-2 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/10 animate-pulse select-none">
                   {/* Pulsing User identity row */}
@@ -581,7 +448,7 @@ export function DashboardView({
               </div>
             </div>
           </div>
-          {sessionsLoading ? (
+          {dashboardLoading ? (
             <div className="h-[240px] w-full flex flex-col justify-end gap-4 p-4 bg-slate-50/50 dark:bg-slate-800/10 rounded-xl border border-slate-100 dark:border-slate-800 animate-pulse relative overflow-hidden select-none">
               <div className="absolute inset-0 flex items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-[1px]">
                 <div className="flex flex-col items-center gap-2">
@@ -678,7 +545,7 @@ export function DashboardView({
               </p>
             </div>
           </div>
-          {sessionsLoading ? (
+          {dashboardLoading ? (
             <div className="h-[240px] w-full flex flex-col justify-end gap-4 p-4 bg-slate-50/50 dark:bg-slate-800/10 rounded-xl border border-slate-100 dark:border-slate-800 animate-pulse relative overflow-hidden select-none">
               <div className="absolute inset-0 flex items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-[1px]">
                 <div className="flex flex-col items-center gap-2">

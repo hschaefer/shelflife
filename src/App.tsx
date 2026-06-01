@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { TextZoom } from "@capacitor/text-zoom";
+import { Capacitor } from "@capacitor/core";
 import { 
   Users, 
   Library as LibraryIcon, 
@@ -96,20 +97,47 @@ export default function App() {
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userStats, setUserStats] = useState<UserStats[]>([]);
+  const [syncStatus, setSyncStatus] = useState<any>(null);
+  const [syncProgress, setSyncProgress] = useState<any>(null);
+  
+  // Dashboard aggregated stats cache state
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [dashboardTimeframe, setDashboardTimeframe] = useState<string>("30");
+
+  async function fetchDashboardStats(tf: string) {
+    try {
+      setDashboardLoading(true);
+      const stats = await api.getDashboardStats(tf);
+      setDashboardStats(stats);
+    } catch (err) {
+      console.error("Failed to fetch dashboard stats:", err);
+    } finally {
+      setDashboardLoading(false);
+    }
+  }
 
   async function fetchSessions(isInitial = false) {
     try {
       setSessionsLoading(true);
       const sessionRes = await api.getSessions({
-        itemsPerPage: 500,
+        limit: 500,
         sort: "startedAt",
-        desc: "1",
-        bypassCache: isInitial ? undefined : "true"
+        desc: "1"
       });
       const allSessions = sessionRes && Array.isArray(sessionRes.sessions) 
         ? sessionRes.sessions 
         : (Array.isArray(sessionRes) ? sessionRes : []);
       setSessions(allSessions);
+
+      // Fetch user stats pre-aggregated from cache
+      const stats = await api.getUserStats();
+      setUserStats(stats);
+
+      // Fetch sync status
+      const status = await api.getSyncStatus();
+      setSyncStatus(status);
     } catch (err) {
       console.error("Failed to fetch listening sessions:", err);
     } finally {
@@ -123,29 +151,52 @@ export default function App() {
       if (isInitial) {
         setLoading(true);
         setSessionsLoading(true);
+        setDashboardLoading(true);
       } else {
         setRefreshing(true);
       }
       
       setError(null);
 
+      // In proxy mode, trigger and await the upstream sync from Audiobookshelf before fetching fresh data
+      if (!Capacitor.isNativePlatform() && !isInitial) {
+        try {
+          await api.triggerSync(undefined, false, true);
+        } catch (syncErr) {
+          console.warn("Failed to trigger upstream sync in proxy mode:", syncErr);
+        }
+      }
+
+      // On Android / direct mode: if it is the initial load and the local cache is empty, trigger a full sync
+      if (Capacitor.isNativePlatform() && isInitial) {
+        try {
+          const status = await api.getSyncStatus();
+          if (!status || status.itemsCached === 0) {
+            console.log("Empty client cache detected on Android. Running initial full sync...");
+            await api.triggerSync(undefined, false, true);
+          }
+        } catch (syncErr) {
+          console.warn("Failed to trigger initial sync in direct mode:", syncErr);
+        }
+      }
+
       // Fetch fast primary items first, excluding slow sessions call
-      const [libData, userData, recentData, onlineData] = await Promise.all([
+      const [libData, userData, recentData, onlineData, dashboardData] = await Promise.all([
         api.getLibraries(),
         api.getUsers(),
         api.getRecentItems(),
-        api.getOnlineUsers()
+        api.getOnlineUsers(),
+        api.getDashboardStats(dashboardTimeframe)
       ]);
 
-      const libs = libData && Array.isArray(libData.libraries) 
-        ? libData.libraries 
-        : (Array.isArray(libData) ? libData : []);
+      const libs = Array.isArray(libData) ? libData : [];
       setLibraries(libs);
 
-      const rawUsers = userData && Array.isArray(userData.users) 
-        ? userData.users 
-        : (Array.isArray(userData) ? userData : []);
+      const rawUsers = Array.isArray(userData) ? userData : [];
       setUsers(rawUsers);
+
+      setDashboardStats(dashboardData);
+      setDashboardLoading(false);
       
       const usersOnline = onlineData && Array.isArray(onlineData.usersOnline) 
         ? onlineData.usersOnline 
@@ -165,27 +216,12 @@ export default function App() {
         .filter(isRecentlyActive)
         .map((s: any) => ({
           ...s,
-          username: s.username || userMap[s.userId] || s.userId,
+          username: s.user?.username || s.username || userMap[s.userId] || s.userId,
         }));
       setActiveSessions(openSessions);
       
-      const items = Array.isArray(recentData) ? recentData : (recentData.results || []);
-      // Transform Audiobookshelf API response to match Book type
-      const transformedBooks: Book[] = items.map((item: any) => {
-        const mediaMeta = item.media?.metadata || item.metadata || { title: "Unknown Title", authorName: "Unknown Author" };
-        return {
-          id: item.id,
-          libraryId: item.libraryId,
-          metadata: {
-            title: mediaMeta.title,
-            authorName: mediaMeta.authorName,
-            coverPath: api.getCoverPath(item.id),
-          },
-          addedAt: item.addedAt,
-          duration: item.media?.duration || 0,
-        };
-      });
-      setBooks(transformedBooks);
+      const items = recentData.results || [];
+      setBooks(items);
       setTotalBooks(recentData.totalBooks || 0);
 
       // Shell loaded immediately
@@ -198,12 +234,14 @@ export default function App() {
       setError("Failed to connect to Audiobookshelf. Please check your credentials or network.");
       setLoading(false);
       setSessionsLoading(false);
+      setDashboardLoading(false);
       setRefreshing(false);
     }
   }
 
   // Sync OS Accessibility text zoom preferences with Root Font Size
   useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
     async function initTextZoom() {
       try {
         const { value } = await TextZoom.getPreferred();
@@ -245,18 +283,36 @@ export default function App() {
   useEffect(() => {
     async function discoverConnection() {
       await api.initialize();
-      const conn = api.getConfig();
-      if (conn?.isDirect) {
-        setIsConfigured(true);
-        fetchData(true);
+      api.onProgress((progress) => {
+        setSyncProgress(progress);
+      });
+      const isNative = Capacitor.isNativePlatform();
+      
+      if (isNative) {
+        const conn = api.getConfig();
+        if (conn?.url && conn?.token) {
+          const health = await api.checkHealth();
+          if (health.ok) {
+            setIsConfigured(true);
+            fetchData(true);
+          } else {
+            // Android connection error (e.g. offline or bad token)
+            setError(health.error || "Failed to reach Audiobookshelf server.");
+            setIsConfigured(true);
+            setLoading(false);
+            setSessionsLoading(false);
+            setDashboardLoading(false);
+          }
+        } else {
+          setIsConfigured(false);
+        }
       } else {
-        // If not direct, see if the Node proxy server is running and healthy
+        // Web: Server mode only. Try to connect to proxy/gateway
         const health = await api.checkHealth();
         if (health.ok) {
           setIsConfigured(true);
           fetchData(true);
         } else {
-          // If proxy fails, we boot to the manual onboarding interface
           setIsConfigured(false);
         }
       }
@@ -291,7 +347,7 @@ export default function App() {
           .filter(isRecentlyActive)
           .map((s: any) => ({
             ...s,
-            username: s.username || onlineUserMap[s.userId] || s.userId,
+            username: s.user?.username || s.username || onlineUserMap[s.userId] || s.userId,
           }));
         setActiveSessions(openSessions);
       } catch (e) {
@@ -303,140 +359,7 @@ export default function App() {
   }, [isConfigured, users]);
 
   // Aggregate User Stats for both Dashboard and Users View
-  const userStats = useMemo(() => {
-    const statsMap: Record<string, UserStats> = {};
-    const userMap: Record<string, string> = {};
-    users.forEach(u => { userMap[u.id] = u.username; });
 
-    // Track hour distribution, completion, genres, and devices for each user
-    const hourDistribution: Record<string, number[]> = {};
-    const completionData: Record<string, { listened: number; total: number }> = {};
-    const firstSession: Record<string, number> = {};
-    const genreCounts: Record<string, Record<string, number>> = {};
-    const deviceCounts: Record<string, Record<string, number>> = {};
-
-    sessions.forEach(session => {
-      if (!statsMap[session.userId]) {
-        statsMap[session.userId] = {
-          userId: session.userId,
-          username: userMap[session.userId] || session.username || session.userId,
-          totalTime: 0,
-          avgDaily: 0,
-          activity: {},
-          joinedAt: session.startedAt,
-          preferredTime: "",
-          completionRate: 0,
-          deviceUsage: "Web Client",
-          topGenre: "Mixed"
-        };
-        hourDistribution[session.userId] = new Array(24).fill(0);
-        completionData[session.userId] = { listened: 0, total: 0 };
-        firstSession[session.userId] = session.startedAt;
-        genreCounts[session.userId] = {};
-        deviceCounts[session.userId] = {};
-      }
-
-      // Track earliest session as join date proxy
-      if (session.startedAt < firstSession[session.userId]) {
-        firstSession[session.userId] = session.startedAt;
-      }
-
-      const dateStr = format(session.startedAt, "yyyy-MM-dd");
-      const listeningTime = session.timeListening || session.duration || 0;
-      statsMap[session.userId].totalTime += listeningTime;
-      statsMap[session.userId].activity[dateStr] = (statsMap[session.userId].activity[dateStr] || 0) + listeningTime;
-
-      // Track hour distribution
-      const hour = new Date(session.startedAt).getHours();
-      hourDistribution[session.userId][hour]++;
-
-      // Track completion rate
-      if (session.duration && session.duration > 0) {
-        completionData[session.userId].listened += session.timeListening || 0;
-        completionData[session.userId].total += session.duration;
-      }
-
-      // Track genres from raw metadata
-      const rawSession = session as any;
-      const genres = rawSession.mediaMetadata?.genres || [];
-      if (Array.isArray(genres)) {
-        genres.forEach((g: string) => {
-          if (g) {
-            genreCounts[session.userId][g] = (genreCounts[session.userId][g] || 0) + 1;
-          }
-        });
-      }
-
-      // Track client device usage
-      const clientName = rawSession.deviceInfo?.clientName;
-      if (clientName) {
-        deviceCounts[session.userId][clientName] = (deviceCounts[session.userId][clientName] || 0) + 1;
-      }
-    });
-
-    return Object.values(statsMap).map(user => {
-      const activeDays = Object.keys(user.activity).length;
-      user.avgDaily = activeDays > 0 ? user.totalTime / activeDays : 0;
-      user.joinedAt = firstSession[user.userId];
-
-      // Calculate preferred time from hour distribution
-      const hours = hourDistribution[user.userId];
-      if (hours) {
-        const maxCount = Math.max(...hours);
-        const peakHour = hours.indexOf(maxCount);
-        if (maxCount > 0) {
-          const label = getTimeLabel(peakHour);
-          user.preferredTime = `${label} (${peakHour}:00-${peakHour + 1}:00)`;
-        } else {
-          user.preferredTime = "Varies";
-        }
-      }
-
-      // Calculate completion rate
-      const comp = completionData[user.userId];
-      if (comp && comp.total > 0) {
-        user.completionRate = Math.round((comp.listened / comp.total) * 100);
-      }
-
-      // Calculate top genre dynamically
-      const userGenres = genreCounts[user.userId];
-      if (userGenres && Object.keys(userGenres).length > 0) {
-        let topG = "Mixed";
-        let maxGCount = 0;
-        Object.entries(userGenres).forEach(([genre, count]) => {
-          if (count > maxGCount) {
-            maxGCount = count;
-            topG = genre;
-          }
-        });
-        user.topGenre = topG;
-      }
-
-      // Calculate device usage dynamically
-      const userDevices = deviceCounts[user.userId];
-      if (userDevices && Object.keys(userDevices).length > 0) {
-        let topD = "Web Client";
-        let maxDCount = 0;
-        Object.entries(userDevices).forEach(([device, count]) => {
-          if (count > maxDCount) {
-            maxDCount = count;
-            topD = device;
-          }
-        });
-        user.deviceUsage = topD;
-      }
-
-      return user;
-    }).sort((a, b) => b.totalTime - a.totalTime);
-  }, [sessions, users]);
-
-  // Helper to format time preference
-  function getTimeLabel(hour: number): string {
-    if (hour >= 5 && hour < 12) return "Morning";
-    if (hour >= 12 && hour < 17) return "Afternoon";
-    if (hour >= 17 && hour < 21) return "Evening";
-    return "Night";
-  }
 
   if (isConfigured === null) {
     return (
@@ -451,6 +374,70 @@ export default function App() {
   }
 
   if (isConfigured === false) {
+    if (!Capacitor.isNativePlatform()) {
+      return (
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6 font-sans relative overflow-hidden">
+          {/* Subtle gradient background blur */}
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-[100px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-600/5 rounded-full blur-[100px]" />
+
+          {/* Theme switcher top right */}
+          <div className="absolute top-6 right-6">
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all shadow-sm cursor-pointer"
+              title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+          </div>
+
+          <div className="max-w-xl w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-8 sm:p-12 text-center relative z-10">
+            <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+              <Activity size={32} className="animate-pulse" />
+            </div>
+            
+            <h2 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight mb-4">
+              Shelf<span className="text-indigo-600 dark:text-indigo-400">Life</span> Setup Required
+            </h2>
+            
+            <p className="text-slate-600 dark:text-slate-400 mb-8 leading-relaxed max-w-md mx-auto text-sm">
+              Your ShelfLife server is running, but it has not been configured to connect to an Audiobookshelf instance.
+              Please configure the backend by setting the environment variables.
+            </p>
+
+            <div className="bg-slate-100 dark:bg-slate-950 rounded-2xl p-6 mb-8 text-left border border-slate-200/50 dark:border-slate-800/50 relative group">
+              <div className="absolute top-3 right-3 text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
+                .env config
+              </div>
+              <pre className="font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto space-y-1">
+                <code>
+                  <div><span className="text-indigo-600 dark:text-indigo-400 font-semibold">ABS_URL</span>=https://your-audiobookshelf-server.com</div>
+                  <div><span className="text-indigo-600 dark:text-indigo-400 font-semibold">ABS_TOKEN</span>=your_audiobookshelf_api_token</div>
+                </code>
+              </pre>
+            </div>
+
+            <button 
+              onClick={async () => {
+                setLoading(true);
+                const health = await api.checkHealth();
+                if (health.ok) {
+                  setIsConfigured(true);
+                  fetchData(true);
+                } else {
+                  setLoading(false);
+                }
+              }}
+              className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold uppercase tracking-widest transition-all shadow-lg shadow-indigo-100 dark:shadow-none cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+            >
+              Check Server Configuration
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return <ConnectionScreen isDark={darkMode} onSuccess={() => {
       setIsConfigured(true);
       fetchData(true);
@@ -459,11 +446,41 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center font-sans">
-        <div className="text-center">
-          <Activity className="animate-spin mb-4 text-indigo-600 mx-auto" size={48} />
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center font-sans p-6">
+        <div className="max-w-md w-full text-center">
+          <Activity className="animate-spin mb-6 text-indigo-600 dark:text-indigo-400 mx-auto" size={48} />
           <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">Synchronizing Dashboard...</h2>
           <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm font-medium">Hold on, we're fetching your audiobooks data.</p>
+          
+          {syncProgress && (
+            <div className="mt-8 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm text-left animate-fade-in">
+              <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2.5">
+                <span className="truncate pr-4">
+                  {syncProgress.type === 'books' 
+                    ? `Caching ${syncProgress.libraryName || 'Library'} Books` 
+                    : 'Syncing User Sessions'}
+                </span>
+                <span className="font-mono text-indigo-600 dark:text-indigo-400 shrink-0">{syncProgress.percentage}%</span>
+              </div>
+              
+              {/* Progress track */}
+              <div className="w-full bg-slate-100 dark:bg-slate-950 rounded-full h-2 overflow-hidden mb-3">
+                <div 
+                  className="bg-indigo-650 dark:bg-indigo-500 h-full rounded-full transition-all duration-300 ease-out" 
+                  style={{ width: `${syncProgress.percentage}%` }}
+                />
+              </div>
+              
+              <div className="flex justify-between items-center text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
+                <span>
+                  {syncProgress.type === 'books' ? 'Syncing repository items' : 'Rebuilding playback history'}
+                </span>
+                <span className="font-mono">
+                  {syncProgress.current} / {syncProgress.total}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -481,19 +498,21 @@ export default function App() {
             {error}
           </p>
           <div className="flex flex-col gap-3">
-            <button 
-              onClick={async () => {
-                await api.disconnect();
-                setIsConfigured(false);
-                setError(null);
-              }}
-              className="w-full py-3 bg-indigo-600 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-indigo-700 transition-colors shadow-md"
-            >
-              Reconfigure Connection
-            </button>
+            {Capacitor.isNativePlatform() && (
+              <button 
+                onClick={async () => {
+                  await api.disconnect();
+                  setIsConfigured(false);
+                  setError(null);
+                }}
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest transition-colors shadow-md cursor-pointer animate-fade-in"
+              >
+                Reconfigure Connection
+              </button>
+            )}
             <button 
               onClick={() => fetchData(true)}
-              className="w-full py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              className="w-full py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             >
               Retry Connection
             </button>
@@ -592,11 +611,16 @@ export default function App() {
                 <DashboardView 
                   recentBooks={books}
                   totalBooks={totalBooks}
-                  sessions={sessions}
+                  dashboardStats={dashboardStats}
+                  dashboardLoading={dashboardLoading}
+                  dashboardTimeframe={dashboardTimeframe}
+                  onTimeframeChange={(tf) => {
+                    setDashboardTimeframe(tf);
+                    fetchDashboardStats(tf);
+                  }}
                   userStats={userStats}
                   libraries={libraries}
                   activeSessions={activeSessions}
-                  sessionsLoading={sessionsLoading}
                   isDark={darkMode}
                 />
               )}
@@ -615,6 +639,7 @@ export default function App() {
                   books={books}
                   libraries={libraries}
                   isDark={darkMode}
+                  syncProgress={syncProgress}
                 />
               )}
               {activeTab === 'settings' && (
@@ -629,6 +654,12 @@ export default function App() {
                   }}
                   darkMode={darkMode}
                   setDarkMode={setDarkMode}
+                  syncStatus={syncStatus}
+                  syncProgress={syncProgress}
+                  onSyncComplete={async (newStatus) => {
+                    setSyncStatus(newStatus);
+                    await fetchData();
+                  }}
                 />
               )}
             </motion.div>

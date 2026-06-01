@@ -1,112 +1,108 @@
 import axios, { AxiosInstance } from "axios";
-import { MatchCandidate } from "../types";
+import { MatchCandidate, Library, Book, User, Session, UserStats } from "../types";
 import { getItem, setItem, removeItem } from "./storage";
 import { Capacitor } from "@capacitor/core";
+import { DataProvider, SyncProgressCallback } from "./data-provider";
+import { ServerDataProvider } from "./server-data-provider";
+import { DirectDataProvider } from "./direct-data-provider";
 
 export interface ConnectionConfig {
   url: string;
   token: string;
-  isDirect: boolean;
   extraHeaders: Record<string, string>;
 }
 
 class ApiClient {
   private client: AxiosInstance | null = null;
   private config: ConnectionConfig | null = null;
+  private provider: DataProvider | null = null;
 
   constructor() {
     // initialize must be called asynchronously at startup
   }
 
-  // Load connection config from storage or fallback to server env
+  // Load connection config based on platform
   public async initialize() {
-    const url = await getItem("ABS_URL");
-    const token = await getItem("ABS_TOKEN");
-    const extraHeadersRaw = await getItem("ABS_EXTRA_HEADERS");
     const isNative = Capacitor.isNativePlatform();
 
-    let extraHeaders: Record<string, string> = {};
-    if (extraHeadersRaw) {
-      try {
-        extraHeaders = JSON.parse(extraHeadersRaw);
-      } catch {
-        console.warn("ABS_EXTRA_HEADERS in storage is not valid JSON — ignoring.");
-      }
-    }
+    if (isNative) {
+      // Android: Load saved direct connection from Capacitor Preferences
+      const url = await getItem("ABS_URL");
+      const token = await getItem("ABS_TOKEN");
+      const extraHeadersRaw = await getItem("ABS_EXTRA_HEADERS");
 
-    if (url && token) {
-      this.config = {
-        url: url.endsWith("/") ? url.slice(0, -1) : url,
-        token,
-        isDirect: true,
-        extraHeaders,
-      };
-
-      const headers: Record<string, string> = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      if (!isNative) {
-        // Web: routes through /gateway
-        headers["X-Target-URL"] = this.config.url;
-        if (Object.keys(extraHeaders).length > 0) {
-          headers["X-ABS-Extra-Headers"] = JSON.stringify(extraHeaders);
+      let extraHeaders: Record<string, string> = {};
+      if (extraHeadersRaw) {
+        try {
+          extraHeaders = JSON.parse(extraHeadersRaw);
+        } catch {
+          console.warn("ABS_EXTRA_HEADERS in storage is not valid JSON — ignoring.");
         }
-      } else {
-        // Native: direct
-        Object.assign(headers, extraHeaders);
       }
 
-      this.client = axios.create({
-        baseURL: isNative ? `${this.config.url}/api` : "/gateway/api",
-        headers,
-      });
+      if (url && token) {
+        this.config = {
+          url: url.endsWith("/") ? url.slice(0, -1) : url,
+          token,
+          extraHeaders,
+        };
+
+        this.provider = new DirectDataProvider(this.config.url, this.config.token, extraHeaders, true);
+
+        this.client = axios.create({
+          baseURL: `${this.config.url}/api`,
+          headers: {
+            Authorization: `Bearer ${this.config.token}`,
+            ...extraHeaders,
+          },
+        });
+      } else {
+        // Not configured yet — no saved credentials
+        this.config = null;
+        this.provider = null;
+        this.client = null;
+      }
     } else {
-      // Proxy Mode Fallback (reads relative from server env via /gateway)
+      // Web: Always use ServerDataProvider — server provides ABS connection via env
+      const serverUrl = window.location.origin;
+
       this.config = {
-        url: isNative ? "http://localhost" : window.location.origin,
+        url: serverUrl,
         token: "",
-        isDirect: false,
-        extraHeaders,
+        extraHeaders: {},
       };
 
-      const headers: Record<string, string> = {};
-      if (!isNative) {
-        if (Object.keys(extraHeaders).length > 0) {
-          headers["X-ABS-Extra-Headers"] = JSON.stringify(extraHeaders);
-        }
-      } else {
-        Object.assign(headers, extraHeaders);
-      }
+      this.provider = new ServerDataProvider(serverUrl, "", {});
 
       this.client = axios.create({
-        baseURL: isNative ? "http://localhost/api" : "/gateway/api",
-        headers,
+        baseURL: "/gateway/api",
       });
     }
 
-    this.client.interceptors.response.use((response) => {
-      const contentType = response.headers?.['content-type'];
-      const contentTypeStr = typeof contentType === 'string' ? contentType : '';
-      if (
-        contentTypeStr.includes('text/html') ||
-        (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE'))
-      ) {
-        throw new Error('Upstream returned HTML instead of JSON. This typically indicates a Cloudflare Access or authentication gateway challenge.');
-      }
-      return response;
-    });
+    if (this.client) {
+      this.client.interceptors.response.use((response) => {
+        const contentType = response.headers?.['content-type'];
+        const contentTypeStr = typeof contentType === 'string' ? contentType : '';
+        if (
+          contentTypeStr.includes('text/html') ||
+          (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE'))
+        ) {
+          throw new Error('Upstream returned HTML instead of JSON. This typically indicates a Cloudflare Access or authentication gateway challenge.');
+        }
+        return response;
+      });
+    }
+  }
+
+  public getProvider(): DataProvider | null {
+    return this.provider;
   }
 
   public getConfig(): ConnectionConfig | null {
     return this.config;
   }
 
-  public isDirectMode(): boolean {
-    return !!this.config?.isDirect;
-  }
-
-  // Save direct credentials (and optional extra headers)
+  // Save connection config (Android only — web uses server env)
   public async saveConnection(url: string, token: string, extraHeaders?: Record<string, string>) {
     const cleanUrl = url.endsWith("/") ? url.slice(0, -1) : url;
     await setItem("ABS_URL", cleanUrl);
@@ -116,28 +112,21 @@ class ApiClient {
     } else {
       await removeItem("ABS_EXTRA_HEADERS");
     }
+    // Clean up legacy key
+    await removeItem("CONNECTION_MODE");
     await this.initialize();
   }
 
-  // Save extra headers separately (e.g. from Settings)
-  public async saveExtraHeaders(extraHeaders: Record<string, string>) {
-    if (Object.keys(extraHeaders).length > 0) {
-      await setItem("ABS_EXTRA_HEADERS", JSON.stringify(extraHeaders));
-    } else {
-      await removeItem("ABS_EXTRA_HEADERS");
-    }
-    await this.initialize();
-  }
-
-  // Clear credentials (logout)
+  // Clear credentials (Android only — web has no client-side credentials)
   public async disconnect() {
     await removeItem("ABS_URL");
     await removeItem("ABS_TOKEN");
     await removeItem("ABS_EXTRA_HEADERS");
+    await removeItem("CONNECTION_MODE");
     await this.initialize();
   }
 
-  // Get cover path dynamically based on connection mode
+  // Get cover path dynamically based on platform
   public getCoverPath(itemId: string): string {
     const isNative = Capacitor.isNativePlatform();
     if (isNative && this.config?.url) {
@@ -152,28 +141,16 @@ class ApiClient {
     const coverPath = this.getCoverPath(itemId);
     try {
       const headers: Record<string, string> = {};
-      if (!isNative) {
-        // Web: through gateway
-        if (this.config?.isDirect && this.config.url) {
-          headers["X-Target-URL"] = this.config.url;
-          if (this.config.token) {
-            headers["Authorization"] = `Bearer ${this.config.token}`;
-          }
-        }
-        const extraHeaders = this.config?.extraHeaders || {};
-        if (Object.keys(extraHeaders).length > 0) {
-          headers["X-ABS-Extra-Headers"] = JSON.stringify(extraHeaders);
-        }
-      } else {
-        // Native: direct request
-        if (this.config?.token) {
+      if (isNative && this.config) {
+        if (this.config.token) {
           headers["Authorization"] = `Bearer ${this.config.token}`;
         }
-        const extraHeaders = this.config?.extraHeaders || {};
+        const extraHeaders = this.config.extraHeaders || {};
         if (Object.keys(extraHeaders).length > 0) {
           Object.assign(headers, extraHeaders);
         }
       }
+      // Web: no extra headers needed — gateway proxy handles auth
       const response = await fetch(coverPath, { headers });
       if (!response.ok) return null;
       const blob = await response.blob();
@@ -195,28 +172,16 @@ class ApiClient {
     try {
       if (isNative) {
         if (this.config?.url) {
-          const extraHeaders = this.config?.extraHeaders || {};
           await axios.get(`${this.config.url}/ping`, {
             timeout: 5000,
-            headers: extraHeaders,
+            headers: this.config.extraHeaders || {},
           });
         } else {
           return { ok: false, error: "No URL configured" };
         }
       } else {
-        // Web: ping the target via the gateway
-        const headers: Record<string, string> = {};
-        if (this.config?.isDirect && this.config.url) {
-          headers["X-Target-URL"] = this.config.url;
-        }
-        const extraHeaders = this.config?.extraHeaders || {};
-        if (Object.keys(extraHeaders).length > 0) {
-          headers["X-ABS-Extra-Headers"] = JSON.stringify(extraHeaders);
-        }
-        await axios.get("/gateway/ping", {
-          timeout: 5000,
-          headers,
-        });
+        // Web: ping upstream ABS via the gateway proxy
+        await axios.get("/gateway/ping", { timeout: 5000 });
       }
 
       // Test credentials/token by loading libraries
@@ -231,57 +196,55 @@ class ApiClient {
     }
   }
 
-  // Get libraries
-  public async getLibraries() {
-    if (!this.client) throw new Error("Client not initialized");
-    const response = await this.client.get("/libraries");
-    return response.data;
+  // DELEGATED DATA PROVIDER METHODS FOR COMPATIBILITY
+
+  public async getLibraries(): Promise<Library[]> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getLibraries();
   }
 
-  // Get users
-  public async getUsers() {
-    if (!this.client) throw new Error("Client not initialized");
-    const response = await this.client.get("/users");
-    return response.data;
+  public async getUsers(): Promise<User[]> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getUsers();
   }
 
-  // Get online users
-  public async getOnlineUsers() {
-    if (!this.client) throw new Error("Client not initialized");
-    const response = await this.client.get("/users/online");
-    return response.data;
+  public async getOnlineUsers(): Promise<any> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getOnlineUsers();
   }
 
-  // Get sessions
-  public async getSessions(params: any) {
-    if (!this.client) throw new Error("Client not initialized");
-    // Standard query parameters
-    const response = await this.client.get("/sessions", { params });
-    return response.data;
+  public async getSessions(params: any): Promise<{ sessions: Session[]; total?: number }> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getSessions(params);
   }
 
-  // Library-specific items
   public async getLibraryItems(libraryId: string, params?: any) {
-    if (!this.client) throw new Error("Client not initialized");
-    const response = await this.client.get(`/libraries/${libraryId}/items`, { params });
-    return response.data;
+    if (!this.provider) throw new Error("Provider not initialized");
+    
+    // Map traditional client query fields to structural query params
+    const query = {
+      libraryId,
+      search: params?.search,
+      sort: params?.sort,
+      order: params?.order || (params?.desc === "1" || params?.desc === true ? "desc" : "asc"),
+      page: params?.page || 0,
+      limit: params?.limit || 20
+    };
+    
+    return this.provider.getLibraryItems(query);
   }
 
-  // Get library stats (total size, duration, etc.)
-  public async getLibraryStats(libraryId: string) {
-    if (!this.client) throw new Error("Client not initialized");
-    const response = await this.client.get(`/libraries/${libraryId}/stats`);
-    return response.data;
+  public async getLibraryStats(libraryId: string): Promise<any> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getLibraryStats(libraryId);
   }
 
-  // Library-specific controls
-  public async scanLibrary(libraryId: string) {
-    if (!this.client) throw new Error("Client not initialized");
-    const response = await this.client.post(`/libraries/${libraryId}/scan?force=1`);
-    return response.data;
+  public async scanLibrary(libraryId: string): Promise<any> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.scanLibrary(libraryId);
   }
 
-  // Get running/active tasks
+  // Get running/active tasks from ABS
   public async getTasks() {
     if (!this.client) throw new Error("Client not initialized");
     const response = await this.client.get("/tasks");
@@ -289,88 +252,23 @@ class ApiClient {
   }
 
   public async matchLibraryItem(itemId: string, matchData?: MatchCandidate) {
-    if (!this.client) throw new Error("Client not initialized");
-    const payload = matchData ? {
-      provider: matchData.provider,
-      id: matchData.id,
-      title: matchData.title,
-      author: matchData.author || null,
-      isbn: matchData.isbn || null,
-      asin: matchData.asin || null,
-      coverUrl: matchData.coverUrl || null,
-      subtitle: matchData.subtitle || null,
-      publisher: matchData.publisher || null,
-      publishDate: matchData.publishDate || null,
-      description: matchData.description || null
-    } : undefined;
-    const response = await this.client.post(`/items/${itemId}/match`, payload);
-    return response.data;
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.matchLibraryItem(itemId, matchData);
   }
 
   public async searchMatches(itemId: string, provider: string, title: string, author?: string): Promise<MatchCandidate[]> {
-    if (!this.client) throw new Error("Client not initialized");
-    const response = await this.client.get("/search/books", {
-      params: { provider, title, author }
-    });
-    const candidates = response.data || [];
-    return candidates.map((c: any) => ({
-      title: c.title,
-      author: c.author,
-      coverUrl: c.cover || (c.covers && c.covers[0]) || undefined,
-      asin: c.asin || undefined,
-      isbn: c.isbn || undefined,
-      subtitle: c.subtitle || undefined,
-      publisher: c.publisher || undefined,
-      publishDate: c.publishDate || c.publishedYear || undefined,
-      description: c.description || undefined,
-      provider: provider,
-      id: c.id || c.key || c.edition || ""
-    }));
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.searchMatches(itemId, provider, title, author);
   }
 
-  // Recent items - always aggregate client-side
-  public async getRecentItems(): Promise<{ results: any[]; totalBooks: number }> {
-    if (!this.client) throw new Error("Client not initialized");
-
-    try {
-      const libData = await this.getLibraries();
-      const libraries = libData?.libraries || libData || [];
-      
-      if (libraries.length === 0) {
-        return { results: [], totalBooks: 0 };
-      }
-
-      const recentPromises = libraries.map((lib: any) =>
-        this.client!.get(`/libraries/${lib.id}/items?limit=10&sort=addedAt&desc=1`)
-          .then((res) => ({
-            results: res.data.results || [],
-            total: res.data.total || 0,
-          }))
-          .catch((err) => {
-            console.error(`Failed to load library items for ${lib.id}:`, err);
-            return { results: [], total: 0 };
-          })
-      );
-
-      const results = await Promise.all(recentPromises);
-      const totalBooks = results.reduce((acc, r) => acc + r.total, 0);
-      const flattened = results.flatMap((r) => r.results);
-      
-      const sorted = flattened.sort((a: any, b: any) => b.addedAt - a.addedAt);
-      return {
-        results: sorted.slice(0, 10),
-        totalBooks,
-      };
-    } catch (err) {
-      console.error("Failed client-side aggregation of recent items:", err);
-      throw err;
-    }
+  public async getRecentItems(limit = 10): Promise<{ results: Book[]; totalBooks: number }> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getRecentItems(limit);
   }
 
   public async getItemDetails(itemId: string) {
-    if (!this.client) throw new Error("Client not initialized");
-    const response = await this.client.get(`/items/${itemId}`);
-    return response.data;
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getItemDetails(itemId);
   }
 
   public async lookupChapters(asin: string, region?: string) {
@@ -384,6 +282,34 @@ class ApiClient {
     if (!this.client) throw new Error("Client not initialized");
     const response = await this.client.post(`/items/${itemId}/chapters`, { chapters });
     return response.data;
+  }
+
+  // Cache specific methods
+  
+  public async getUserStats(): Promise<UserStats[]> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getUserStats();
+  }
+
+  public async getDashboardStats(timeframe?: string): Promise<any> {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getDashboardStats(timeframe);
+  }
+
+  public async getSyncStatus() {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.getSyncStatus();
+  }
+
+  public async triggerSync(libraryId?: string, forceFull = false, awaitSync = true) {
+    if (!this.provider) throw new Error("Provider not initialized");
+    return this.provider.triggerSync(libraryId, forceFull, awaitSync);
+  }
+
+  public onProgress(callback: SyncProgressCallback) {
+    if (this.provider && 'onProgress' in this.provider && typeof (this.provider as any).onProgress === 'function') {
+      (this.provider as any).onProgress(callback);
+    }
   }
 }
 

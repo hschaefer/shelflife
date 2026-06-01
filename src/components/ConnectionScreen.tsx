@@ -9,13 +9,11 @@ import {
   AlertCircle, 
   ArrowRight,
   ShieldAlert,
-  Server,
   ChevronDown
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import axios from "axios";
 import { api } from "../lib/api";
-import { Capacitor } from "@capacitor/core";
 import logoLight from "../../assets/icon.svg";
 import logoDark from "../../assets/icon-dark.svg";
 
@@ -24,6 +22,13 @@ interface ConnectionScreenProps {
   isDark?: boolean;
 }
 
+/**
+ * ConnectionScreen — Android/Native only.
+ * 
+ * On the web, the server provides the ABS connection via environment variables,
+ * so this component is never rendered. On Android, users connect directly to
+ * their Audiobookshelf instance by entering URL + credentials or API token.
+ */
 export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreenProps) {
   const [url, setUrl] = useState("");
   const [authMethod, setAuthMethod] = useState<"credentials" | "token">("credentials");
@@ -70,13 +75,13 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
             throw new Error("Must be a JSON object");
           }
         } catch {
-          setStatus({ type: "error", message: 'Extra Headers must be valid JSON, e.g. {"CF-Access-Client-Id": "..."}' });
+          setStatus({ type: "error", message: 'Extra Headers must be valid JSON, e.g. {"CF-Access-Client-Id": "...", "CF-Access-Client-Secret": "..."}' });
           setLoading(false);
           return;
         }
       }
 
-      // If credentials auth, fetch token from /api/login
+      // Direct ABS connection — authenticate to get token
       if (authMethod === "credentials") {
         if (!username || !password) {
           setStatus({ type: "error", message: "Username and password are required." });
@@ -84,20 +89,13 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
           return;
         }
 
-        const isNative = Capacitor.isNativePlatform();
-        const loginUrl = isNative ? `${formattedUrl}/login` : `/gateway/login`;
-
         const loginRes = await axios.post(
-          loginUrl,
+          `${formattedUrl}/login`,
           { username, password },
           { 
             headers: { 
               "Content-Type": "application/json",
-              ...(isNative ? {} : { "X-Target-URL": formattedUrl }),
-              // Forward extra headers so CF-protected servers accept login
-              ...(parsedExtraHeaders && !isNative
-                ? { "X-ABS-Extra-Headers": JSON.stringify(parsedExtraHeaders) }
-                : parsedExtraHeaders ?? {}),
+              ...(parsedExtraHeaders ?? {}),
             }, 
             timeout: 8000 
           }
@@ -116,17 +114,20 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
         resolvedToken = token.trim();
       }
 
-      // Initialize API client temporarily to verify config
       await api.saveConnection(formattedUrl, resolvedToken, parsedExtraHeaders);
+
       const health = await api.checkHealth();
 
       if (health.ok) {
-        setStatus({ type: "success", message: "Successfully connected to Audiobookshelf!" });
+        setStatus({ 
+          type: "success", 
+          message: "Successfully connected to Audiobookshelf!" 
+        });
         setTimeout(() => {
           onSuccess();
         }, 1200);
       } else {
-        await api.disconnect(); // Clear credentials
+        await api.disconnect();
         setStatus({
           type: "error",
           message: health.error || "Connection verified, but authorization failed.",
@@ -134,7 +135,7 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
       }
     } catch (err: any) {
       console.error(err);
-      await api.disconnect(); // Clear credentials
+      await api.disconnect();
       let errorMsg = "Could not reach server. Verify the URL is correct and online.";
       
       if (err.response) {
@@ -155,8 +156,6 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
       setLoading(false);
     }
   };
-
-  const isNative = Capacitor.isNativePlatform();
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center p-4 sm:p-6 selection:bg-indigo-100 dark:selection:bg-indigo-950 selection:text-indigo-900 dark:selection:text-indigo-200 transition-colors duration-200 font-sans">
@@ -186,22 +185,11 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
           </p>
         </div>
 
-        {/* Browser security warning — hidden on native/Android */}
-        {!isNative && (
-          <div className="mb-5 flex items-start gap-2.5 rounded-2xl border border-amber-100 dark:border-amber-950/20 bg-amber-50/70 dark:bg-amber-950/15 px-4 py-3">
-            <ShieldAlert size={15} className="shrink-0 text-amber-600 dark:text-amber-500/60 mt-0.5" />
-            <p className="text-[11px] leading-relaxed text-amber-800 dark:text-amber-400/70 font-medium">
-              <span className="font-bold text-amber-900 dark:text-amber-300/80">Testing only.</span>{" "}
-              Browser login stores credentials and headers in the browser, which is insecure. For production use, pass <code className="bg-amber-100/80 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300/70 px-1 rounded text-[10px] font-mono">ABS_URL</code> and <code className="bg-amber-100/80 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300/70 px-1 rounded text-[10px] font-mono">ABS_TOKEN</code> via your environment.
-            </p>
-          </div>
-        )}
-
         <form onSubmit={handleConnect} className="space-y-5">
           {/* Server URL Input */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-              Server URL
+              Audiobookshelf URL
             </label>
             <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 rounded-2xl group focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-950/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
               <Globe size={16} className="text-slate-400 dark:text-slate-550 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
@@ -221,7 +209,7 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
           </div>
 
           {/* Auth Method Selector */}
-          <div className="grid grid-cols-2 gap-2 bg-slate-55 dark:bg-slate-950 p-1 rounded-2xl border border-slate-200 dark:border-slate-808 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+          <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-950 p-1 rounded-2xl border border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={() => setAuthMethod("credentials")}
@@ -283,7 +271,7 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
                   <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                     Password
                   </label>
-                  <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-955 border border-slate-202 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 rounded-2xl group focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-950/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
+                  <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 rounded-2xl group focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-950/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
                     <Lock size={16} className="text-slate-400 dark:text-slate-550 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
                     <input
                       type="password"

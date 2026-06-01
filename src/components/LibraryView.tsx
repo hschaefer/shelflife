@@ -3,7 +3,7 @@ import {
   Library as LibraryIcon, Database, RefreshCw, Layers, BookOpen, 
   Search, Filter, MoreVertical, CheckCircle2, AlertCircle, Sparkles,
   ChevronRight, Calendar, User as UserIcon, Tag, ArrowUp, ArrowDown, Clock,
-  TrendingUp
+  TrendingUp, ChevronLeft, ChevronsLeft, ChevronsRight
 } from "lucide-react";
 import { Book, Library } from "../types";
 import { formatDistanceToNow, format, subDays } from "date-fns";
@@ -20,6 +20,7 @@ interface LibraryViewProps {
   books: Book[];
   libraries: Library[];
   isDark?: boolean;
+  syncProgress?: any;
 }
 
 function formatBytes(bytes: number | undefined): string {
@@ -90,7 +91,7 @@ const CustomChartTooltip = ({ active, payload, isDark }: any) => {
   return null;
 };
 
-export function LibraryView({ books: initialBooks, libraries, isDark = false }: LibraryViewProps) {
+export function LibraryView({ books: initialBooks, libraries, isDark = false, syncProgress }: LibraryViewProps) {
   const isMounted = useRef(true);
   useEffect(() => {
     isMounted.current = true;
@@ -107,20 +108,23 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
   const [selectedBookForDetails, setSelectedBookForDetails] = useState<Book | null>(null);
   const [initialModalTab, setInitialModalTab] = useState<'details' | 'match' | 'chapters'>('details');
   const [searchTerm, setSearchTerm] = useState("");
-  const [visibleCount, setVisibleCount] = useState(15);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 18;
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [sortBy, setSortBy] = useState<'title' | 'author' | 'addedAt'>('addedAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [libraryStats, setLibraryStats] = useState<{ totalSize: number; totalDuration: number } | null>(null);
   const [chartTimeframe, setChartTimeframe] = useState<'7' | '30' | '365' | 'all'>('all');
+  const [chartBooks, setChartBooks] = useState<Book[]>([]);
+  const [totalBooks, setTotalBooks] = useState(0);
 
   const { chartData, minTime, maxTime } = useMemo(() => {
-    if (!books || books.length === 0) {
+    if (!chartBooks || chartBooks.length === 0) {
       return { chartData: [], minTime: 0, maxTime: 0 };
     }
     
     // Sort all books ascending by addedAt
-    const sorted = [...books]
+    const sorted = [...chartBooks]
       .filter(b => b.addedAt)
       .sort((a, b) => a.addedAt - b.addedAt);
       
@@ -193,7 +197,7 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
     });
 
     return { chartData: chartPoints, minTime, maxTime };
-  }, [books, chartTimeframe]);
+  }, [chartBooks, chartTimeframe]);
 
   const handleHeaderClick = (field: 'title' | 'author' | 'addedAt') => {
     if (sortBy === field) {
@@ -210,47 +214,130 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
     }
   }, [libraries]);
 
-  const fetchLibraryBooks = async () => {
+  const fetchLibraryMetadata = async () => {
     const libId = selectedLibraryId || (libraries.length > 0 ? libraries[0].id : "");
     if (!libId) return;
     setLoading(true);
     try {
-      const [res, stats] = await Promise.all([
-        api.getLibraryItems(libId, { limit: 1000 }),
+      const [stats, fullItemsRes] = await Promise.all([
         api.getLibraryStats(libId).catch(err => {
           console.error("Failed to fetch library stats:", err);
           return null;
+        }),
+        api.getLibraryItems(libId, { limit: 100000, page: 0 }).catch(err => {
+          console.error("Failed to fetch full library items for chart:", err);
+          return { results: [], totalBooks: 0 };
         })
       ]);
-      const items = res.results || res || [];
+
+      const items = Array.isArray(fullItemsRes) ? fullItemsRes : (fullItemsRes?.results || []);
       const transformed: Book[] = items.map((item: any) => {
-        const mediaMeta = item.media?.metadata || item.metadata || { title: "Unknown Title", authorName: "Unknown Author" };
+        const mediaMeta = item.metadata || { title: "Unknown Title", authorName: "Unknown Author" };
         return {
           id: item.id,
           libraryId: item.libraryId,
           metadata: {
             title: mediaMeta.title,
             authorName: mediaMeta.authorName,
-            coverPath: api.getCoverPath(item.id),
+            coverPath: mediaMeta.coverPath || api.getCoverPath(item.id),
           },
           addedAt: item.addedAt || Date.now(),
-          duration: item.media?.duration || 0,
+          duration: item.duration || 0,
         };
       });
-      setBooks(transformed);
+
+      setChartBooks(transformed);
       setLibraryStats(stats);
     } catch (err) {
-      console.error("Failed to fetch library books:", err);
-      setBooks(initialBooks);
+      console.error("Failed to fetch library metadata:", err);
       setLibraryStats(null);
     } finally {
       setLoading(false);
     }
   };
 
+  const totalPages = Math.ceil(totalBooks / ITEMS_PER_PAGE) || 1;
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      if (start > 2) {
+        pages.push('...');
+      }
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      if (end < totalPages - 1) {
+        pages.push('...');
+      }
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  const fetchPaginatedBooks = async () => {
+    const libId = selectedLibraryId || (libraries.length > 0 ? libraries[0].id : "");
+    if (!libId) return;
+    try {
+      const res = await api.getLibraryItems(libId, {
+        search: searchTerm,
+        sort: sortBy,
+        desc: sortOrder === 'desc',
+        page: currentPage - 1,
+        limit: ITEMS_PER_PAGE
+      });
+      const items = Array.isArray(res) ? res : (res?.results || []);
+      const transformed: Book[] = items.map((item: any) => {
+        const mediaMeta = item.metadata || { title: "Unknown Title", authorName: "Unknown Author" };
+        return {
+          id: item.id,
+          libraryId: item.libraryId,
+          metadata: {
+            title: mediaMeta.title,
+            authorName: mediaMeta.authorName,
+            coverPath: mediaMeta.coverPath || api.getCoverPath(item.id),
+          },
+          addedAt: item.addedAt || Date.now(),
+          duration: item.duration || 0,
+        };
+      });
+      setBooks(transformed);
+      setTotalBooks(res.totalBooks || transformed.length);
+    } catch (err) {
+      console.error("Failed to fetch paginated books:", err);
+      setBooks([]);
+      setTotalBooks(0);
+    }
+  };
+
   useEffect(() => {
-    fetchLibraryBooks();
+    fetchLibraryMetadata();
   }, [selectedLibraryId]);
+
+  // Reset page to 1 on filter/search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedLibraryId, searchTerm, sortBy, sortOrder]);
+
+  useEffect(() => {
+    fetchPaginatedBooks();
+  }, [selectedLibraryId, searchTerm, sortBy, sortOrder, currentPage]);
+
+  const fetchLibraryBooks = async () => {
+    // Legacy function preserved for scan status polling / manual refresh triggers
+    await Promise.all([
+      fetchLibraryMetadata(),
+      fetchPaginatedBooks()
+    ]);
+  };
 
   const handleRescan = async () => {
     const libId = selectedLibraryId || (libraries.length > 0 ? libraries[0].id : "");
@@ -285,13 +372,18 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
           if (isScanActive && elapsed < maxDuration) {
             setTimeout(pollScanStatus, pollInterval);
           } else {
-            // Scan finished or timed out - do one final sync and stop spinner
+            // Scan finished or timed out - trigger targeted incremental sync
+            await api.triggerSync(libId, false).catch(err => {
+              console.error("Failed to sync library cache:", err);
+            });
+            // Do one final fetch of updated items and stop spinner
             await fetchLibraryBooks();
             setIsRescanning(false);
           }
         } catch (err) {
           console.error("Error during scan polling:", err);
-          // Fallback: do a final fetch and stop spinning
+          // Fallback: trigger cache sync and reload
+          await api.triggerSync(libId, false).catch(() => null);
           await fetchLibraryBooks();
           setIsRescanning(false);
         }
@@ -314,37 +406,8 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
     }, 2000);
   };
 
-  const filteredBooks = useMemo(() => {
-    return books
-      .filter(book => {
-        const title = book.metadata?.title || "";
-        const author = book.metadata?.authorName || "";
-        const id = book.id || "";
-        const query = searchTerm.toLowerCase();
-        return title.toLowerCase().includes(query) || 
-               author.toLowerCase().includes(query) || 
-               id.toLowerCase().includes(query);
-      })
-      .sort((a, b) => {
-        let comparison = 0;
-        if (sortBy === 'title') {
-          const titleA = a.metadata?.title || "";
-          const titleB = b.metadata?.title || "";
-          comparison = titleA.localeCompare(titleB, undefined, { sensitivity: 'base', numeric: true });
-        } else if (sortBy === 'author') {
-          const authorA = a.metadata?.authorName || "";
-          const authorB = b.metadata?.authorName || "";
-          comparison = authorA.localeCompare(authorB, undefined, { sensitivity: 'base', numeric: true });
-        } else if (sortBy === 'addedAt') {
-          comparison = a.addedAt - b.addedAt;
-        }
-        return sortOrder === 'asc' ? comparison : -comparison;
-      });
-  }, [books, searchTerm, sortBy, sortOrder]);
+  const paginatedBooks = books;
 
-  const paginatedBooks = useMemo(() => {
-    return filteredBooks.slice(0, visibleCount);
-  }, [filteredBooks, visibleCount]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -362,7 +425,7 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
                 value={selectedLibraryId}
                 onChange={(e) => {
                   setSelectedLibraryId(e.target.value);
-                  setVisibleCount(15);
+                  setCurrentPage(1);
                 }}
                 className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/30 outline-none transition-all cursor-pointer hover:border-slate-300 dark:hover:border-slate-700"
               >
@@ -398,10 +461,10 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
           <div className="block lg:hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
             <div className="grid grid-cols-2 gap-x-4 gap-y-4">
               {[
-                { label: "Total Indexed", value: books.length, icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/30" },
+                { label: "Total Indexed", value: totalBooks, icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/30" },
                 { label: "Library Size", value: formatBytes(libraryStats?.totalSize), icon: Database, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/30" },
                 { label: "Play Duration", value: formatDuration(libraryStats?.totalDuration), icon: Clock, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-                { label: "Unique Authors", value: [...new Set(books.map(b => b.metadata?.authorName || "Unknown"))].length, icon: UserIcon, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/30" },
+                { label: "Unique Authors", value: libraryStats?.totalAuthors || 0, icon: UserIcon, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/30" },
               ].map((stat, idx) => (
                 <div key={stat.label} className={cn("flex items-center gap-3", idx % 2 === 1 && "pl-2 border-l border-slate-100 dark:border-slate-800")}>
                   <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", stat.bg, stat.color)}>
@@ -419,10 +482,10 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
           {/* DESKTOP VIEW ONLY: Stacked Vertical Cards */}
           <div className="hidden lg:flex flex-col gap-3 h-full">
             {[
-              { label: "Total Indexed", value: books.length, icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/30" },
+              { label: "Total Indexed", value: totalBooks, icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/30" },
               { label: "Library Size", value: formatBytes(libraryStats?.totalSize), icon: Database, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/30" },
               { label: "Play Duration", value: formatDuration(libraryStats?.totalDuration), icon: Clock, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-              { label: "Unique Authors", value: [...new Set(books.map(b => b.metadata?.authorName || "Unknown"))].length, icon: UserIcon, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/30" },
+              { label: "Unique Authors", value: libraryStats?.totalAuthors || 0, icon: UserIcon, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/30" },
             ].map((stat) => (
               <div key={stat.label} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 flex items-center gap-3.5 shadow-sm flex-grow justify-start">
                 <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", stat.bg, stat.color)}>
@@ -468,12 +531,20 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
           </div>
 
           {loading ? (
-            <div className="h-[240px] w-full flex flex-col justify-end gap-4 p-4 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl border border-slate-100 dark:border-slate-800/50 animate-pulse relative overflow-hidden select-none">
-              <div className="absolute inset-0 flex items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-[1px]">
-                <div className="flex flex-col items-center gap-2">
-                  <Clock size={24} className="text-indigo-500 animate-spin" style={{ animationDuration: '3s' }} />
-                  <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Syncing growth trends...</p>
-                </div>
+            <div className="h-[240px] w-full flex flex-col justify-center items-center gap-4 p-4 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl border border-slate-100 dark:border-slate-800/50 relative overflow-hidden select-none">
+              <div className="flex flex-col items-center gap-2 max-w-xs w-full text-center">
+                <Clock size={24} className="text-indigo-500 animate-spin mb-1" style={{ animationDuration: '3s' }} />
+                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  {syncProgress && syncProgress.type === 'books' ? `Syncing library: ${syncProgress.percentage}%` : 'Syncing growth trends...'}
+                </p>
+                {syncProgress && syncProgress.type === 'books' && (
+                  <>
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1 mt-1 overflow-hidden">
+                      <div className="bg-indigo-500 h-full rounded-full transition-all duration-300" style={{ width: `${syncProgress.percentage}%` }} />
+                    </div>
+                    <span className="text-[8px] font-mono text-slate-400 mt-0.5">{syncProgress.current} / {syncProgress.total} books</span>
+                  </>
+                )}
               </div>
             </div>
           ) : chartData.length === 0 ? (
@@ -542,7 +613,7 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
-                  setVisibleCount(15); // Reset visible count on search
+                  setCurrentPage(1); // Reset page on search
                 }}
                 placeholder="Search volume by title, author, or ID..." 
                 className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-1.5 pl-9 pr-3 text-[11px] font-medium focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/30 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all"
@@ -555,7 +626,7 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
                   value={sortBy}
                   onChange={(e) => {
                     setSortBy(e.target.value as any);
-                    setVisibleCount(15);
+                    setCurrentPage(1); // Reset page on sort change
                   }}
                   className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/30 outline-none transition-all cursor-pointer hover:border-slate-300 dark:hover:border-slate-700"
                 >
@@ -647,8 +718,18 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
                 {loading ? (
                   <tr>
                     <td colSpan={3} className="px-3 sm:px-5 py-12 text-center">
-                      <RefreshCw size={20} className="animate-spin text-indigo-600 dark:text-indigo-400 mx-auto mb-2" />
-                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Syncing repository contents...</p>
+                      <RefreshCw size={20} className="animate-spin text-indigo-600 dark:text-indigo-400 mx-auto mb-3" />
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                        {syncProgress && syncProgress.type === 'books' ? `Syncing library: ${syncProgress.percentage}%` : 'Syncing repository contents...'}
+                      </p>
+                      {syncProgress && syncProgress.type === 'books' && (
+                        <div className="max-w-[200px] mx-auto mt-2 text-center">
+                          <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1 overflow-hidden">
+                            <div className="bg-indigo-500 h-full rounded-full transition-all duration-300" style={{ width: `${syncProgress.percentage}%` }} />
+                          </div>
+                          <p className="text-[8px] font-mono text-slate-400 dark:text-slate-500 mt-1">{syncProgress.current} / {syncProgress.total} books</p>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ) : paginatedBooks.length === 0 ? (
@@ -716,8 +797,18 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
           <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {loading ? (
               <div className="col-span-full py-12 text-center">
-                <RefreshCw size={20} className="animate-spin text-indigo-600 dark:text-indigo-400 mx-auto mb-2" />
-                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Syncing repository contents...</p>
+                <RefreshCw size={20} className="animate-spin text-indigo-600 dark:text-indigo-400 mx-auto mb-3" />
+                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                  {syncProgress && syncProgress.type === 'books' ? `Syncing library: ${syncProgress.percentage}%` : 'Syncing repository contents...'}
+                </p>
+                {syncProgress && syncProgress.type === 'books' && (
+                  <div className="max-w-[200px] mx-auto mt-2 text-center">
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1 overflow-hidden">
+                      <div className="bg-indigo-500 h-full rounded-full transition-all duration-300" style={{ width: `${syncProgress.percentage}%` }} />
+                    </div>
+                    <p className="text-[8px] font-mono text-slate-400 dark:text-slate-500 mt-1">{syncProgress.current} / {syncProgress.total} books</p>
+                  </div>
+                )}
               </div>
             ) : paginatedBooks.length === 0 ? (
               <div className="col-span-full py-12 text-center">
@@ -771,21 +862,82 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
           </div>
         )}
         
-        {!loading && filteredBooks.length > visibleCount && (
-          <div className="p-3 bg-slate-50/50 dark:bg-slate-850/20 border-t border-slate-200 dark:border-slate-800 flex items-center justify-center">
-            <button 
-              onClick={() => setVisibleCount(prev => prev + 15)}
-              className="text-[10px] font-bold text-indigo-600 dark:text-indigo-450 hover:text-indigo-750 dark:hover:text-indigo-350 transition-colors uppercase tracking-widest active:scale-95 cursor-pointer"
-            >
-              Load More Assets ({filteredBooks.length - visibleCount} remaining)
-            </button>
-          </div>
-        )}
-        {!loading && filteredBooks.length <= visibleCount && filteredBooks.length > 0 && (
-          <div className="p-3 bg-slate-50/50 dark:bg-slate-850/20 border-t border-slate-200 dark:border-slate-800 flex items-center justify-center">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-              All {filteredBooks.length} assets displayed
-            </span>
+        {!loading && totalBooks > 0 && (
+          <div className="px-4 py-3 bg-slate-50/30 dark:bg-slate-800/10 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="font-semibold text-slate-500 dark:text-slate-400">
+              Showing <span className="text-slate-850 dark:text-slate-200">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> to{" "}
+              <span className="text-slate-850 dark:text-slate-200">{Math.min(totalBooks, currentPage * ITEMS_PER_PAGE)}</span> of{" "}
+              <span className="text-slate-855 dark:text-slate-205">{totalBooks}</span> assets
+            </div>
+            
+            <div className="flex items-center gap-1.5">
+              {/* First Page */}
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className={cn(
+                  "p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                )}
+                title="First Page"
+              >
+                <ChevronsLeft size={13} />
+              </button>
+
+              {/* Prev Page */}
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className={cn(
+                  "p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                )}
+                title="Previous Page"
+              >
+                <ChevronLeft size={13} />
+              </button>
+
+              {/* Page Numbers */}
+              {getPageNumbers().map((p, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => typeof p === 'number' && setCurrentPage(p)}
+                  disabled={p === '...'}
+                  className={cn(
+                    "min-w-8 h-8 px-2 rounded-lg text-[10px] font-extrabold transition-all flex items-center justify-center cursor-pointer",
+                    p === currentPage
+                      ? "bg-indigo-650 dark:bg-indigo-600 text-white shadow-sm"
+                      : p === '...'
+                      ? "text-slate-400 dark:text-slate-600 cursor-default"
+                      : "border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-350"
+                  )}
+                >
+                  {p}
+                </button>
+              ))}
+
+              {/* Next Page */}
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className={cn(
+                  "p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                )}
+                title="Next Page"
+              >
+                <ChevronRight size={13} />
+              </button>
+
+              {/* Last Page */}
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className={cn(
+                  "p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                )}
+                title="Last Page"
+              >
+                <ChevronsRight size={13} />
+              </button>
+            </div>
           </div>
         )}
       </div>

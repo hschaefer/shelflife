@@ -44,6 +44,10 @@ export interface Session {
   isActive?: boolean;
   displayTitle?: string;
   mediaItemTitle?: string;
+  user?: {
+    id?: string;
+    username: string;
+  };
 }
 
 export interface UserStats {

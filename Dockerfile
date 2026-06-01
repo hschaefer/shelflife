@@ -11,6 +11,7 @@ RUN npm ci
 # Copy source files and build
 COPY assets/ ./assets
 COPY src/ ./src
+COPY server/ ./server
 RUN npm run build
 
 # Stage 2: Production runner
@@ -32,6 +33,7 @@ COPY --from=builder /app/dist ./dist
 # Copy runtime dependencies and server files
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/server ./server
 COPY server.ts tsconfig.json ./
 
 # Create data directory for SQLite persistent volume

@@ -398,7 +398,7 @@ export function apiRouter(): Router {
         }> = {};
 
         recentSessions.forEach(session => {
-          const uId = session.userId;
+          const uId = session.userId || 'deleted_user';
           const title = session.displayTitle || session.mediaItemTitle || "Unknown Book";
           const time = session.timeListening || session.duration || 0;
 

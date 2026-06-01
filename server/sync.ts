@@ -335,11 +335,29 @@ export async function syncSessions(forceFull = false): Promise<void> {
         }
       }
 
+      // Ensure fallbacks for deleted or missing users
+      const resolvedUserId = session.userId || 'deleted_user';
+      const resolvedUsername = session.user?.username || session.username || 'Unknown User';
+
+      // Update session object before stringifying so client/frontend is consistent
+      if (!session.userId) {
+        session.userId = resolvedUserId;
+      }
+      if (!session.username) {
+        session.username = resolvedUsername;
+      }
+      if (!session.user) {
+        session.user = { id: resolvedUserId, username: resolvedUsername };
+      } else {
+        if (!session.user.id) session.user.id = resolvedUserId;
+        if (!session.user.username) session.user.username = resolvedUsername;
+      }
+
       const genres = session.mediaMetadata?.genres || [];
       transformed.push({
         id: session.id,
-        user_id: session.userId,
-        username: session.user?.username || session.username || 'Unknown User',
+        user_id: resolvedUserId,
+        username: resolvedUsername,
         library_id: session.libraryId || null,
         library_item_id: session.libraryItemId || null,
         duration: parseFloat(session.duration || 0),

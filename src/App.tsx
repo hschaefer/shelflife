@@ -227,6 +227,7 @@ export default function App() {
 
   // Sync OS Accessibility text zoom preferences with Root Font Size
   useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
     async function initTextZoom() {
       try {
         const { value } = await TextZoom.getPreferred();

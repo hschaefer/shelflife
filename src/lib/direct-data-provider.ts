@@ -699,10 +699,23 @@ export class DirectDataProvider implements DataProvider {
   }
 
   public async searchMatches(itemId: string, provider: string, title: string, author?: string): Promise<any> {
-    const response = await this.client.get(`/items/${itemId}/match/search`, {
+    const response = await this.client.get('/search/books', {
       params: { provider, title, author }
     });
-    return response.data;
+    const candidates = response.data || [];
+    return candidates.map((c: any) => ({
+      title: c.title,
+      author: c.author,
+      coverUrl: c.cover || (c.covers && c.covers[0]) || undefined,
+      asin: c.asin || undefined,
+      isbn: c.isbn || undefined,
+      subtitle: c.subtitle || undefined,
+      publisher: c.publisher || undefined,
+      publishDate: c.publishDate || c.publishedYear || undefined,
+      description: c.description || undefined,
+      provider: provider,
+      id: c.id || c.key || c.edition || ""
+    }));
   }
 
   public async scanLibrary(libraryId: string): Promise<any> {

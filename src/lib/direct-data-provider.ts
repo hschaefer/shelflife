@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { DataProvider, LibraryItemsQuery, LibraryItemsResponse } from './data-provider';
+import { DataProvider, LibraryItemsQuery, LibraryItemsResponse, SyncProgressCallback } from './data-provider';
 import { Library, Book, User, Session, UserStats } from '../types';
 import { getItem } from './storage';
 
@@ -134,6 +134,24 @@ export class DirectDataProvider implements DataProvider {
   private client: AxiosInstance;
   private db: IndexedDbWrapper;
   private syncState: Record<string, { isSyncing: boolean; lastSync: number }> = {};
+  private progressCallback: SyncProgressCallback | null = null;
+
+  public onProgress(callback: SyncProgressCallback) {
+    this.progressCallback = callback;
+  }
+
+  private notifyProgress(type: 'books' | 'sessions', current: number, total: number, libraryName?: string) {
+    if (this.progressCallback) {
+      const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
+      this.progressCallback({
+        type,
+        current,
+        total,
+        percentage: Math.min(100, percentage),
+        libraryName
+      });
+    }
+  }
 
   constructor(absUrl: string, token: string, extraHeaders?: Record<string, string>, isNative = false) {
     const baseURL = isNative ? `${absUrl}/api` : '/gateway/api';
@@ -635,15 +653,21 @@ export class DirectDataProvider implements DataProvider {
   private async runSessionSync(): Promise<void> {
     try {
       console.log("[DirectCache] Syncing sessions to device...");
+      this.notifyProgress('sessions', 0, 1);
+
       const response = await this.client.get('/sessions', {
         params: { itemsPerPage: 500, sort: 'startedAt', desc: '1' }
       });
       const sessions = response.data?.sessions || [];
+      const total = response.data?.total || sessions.length;
+
       if (sessions.length > 0) {
         await this.db.clearSessions();
         await this.db.putSessions(sessions);
         console.log(`[DirectCache] Cached ${sessions.length} sessions successfully.`);
       }
+      
+      this.notifyProgress('sessions', sessions.length, total);
     } catch (err) {
       console.error("[DirectCache] Failed to sync sessions:", err);
     }
@@ -679,7 +703,20 @@ export class DirectDataProvider implements DataProvider {
     let page = 0;
     const limit = 100;
     let hasMore = true;
+    let currentSynced = 0;
+    let totalItems = 0;
     const fetchedIds: Set<string> = new Set();
+
+    let libraryName = 'Library';
+    try {
+      const libs = await this.getLibraries();
+      const currentLib = libs.find(l => l.id === libraryId);
+      if (currentLib) {
+        libraryName = currentLib.name;
+      }
+    } catch (e) {
+      console.warn("[DirectCache] Failed to fetch library name for sync progress:", e);
+    }
 
     while (hasMore) {
       const response = await this.client.get(`/libraries/${libraryId}/items`, {
@@ -687,6 +724,10 @@ export class DirectDataProvider implements DataProvider {
       });
 
       const results = response.data?.results || [];
+      if (page === 0) {
+        totalItems = response.data?.total || results.length;
+      }
+
       if (results.length === 0) {
         hasMore = false;
         break;
@@ -709,6 +750,9 @@ export class DirectDataProvider implements DataProvider {
       });
 
       await this.db.putItems(books);
+
+      currentSynced += results.length;
+      this.notifyProgress('books', currentSynced, totalItems, libraryName);
 
       page++;
       if (results.length < limit) {

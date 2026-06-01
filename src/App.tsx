@@ -99,6 +99,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [userStats, setUserStats] = useState<UserStats[]>([]);
   const [syncStatus, setSyncStatus] = useState<any>(null);
+  const [syncProgress, setSyncProgress] = useState<any>(null);
   
   // Dashboard aggregated stats cache state
   const [dashboardStats, setDashboardStats] = useState<any>(null);
@@ -163,6 +164,19 @@ export default function App() {
           await api.triggerSync(undefined, false, true);
         } catch (syncErr) {
           console.warn("Failed to trigger upstream sync in proxy mode:", syncErr);
+        }
+      }
+
+      // On Android / direct mode: if it is the initial load and the local cache is empty, trigger a full sync
+      if (Capacitor.isNativePlatform() && isInitial) {
+        try {
+          const status = await api.getSyncStatus();
+          if (!status || status.itemsCached === 0) {
+            console.log("Empty client cache detected on Android. Running initial full sync...");
+            await api.triggerSync(undefined, false, true);
+          }
+        } catch (syncErr) {
+          console.warn("Failed to trigger initial sync in direct mode:", syncErr);
         }
       }
 
@@ -269,6 +283,9 @@ export default function App() {
   useEffect(() => {
     async function discoverConnection() {
       await api.initialize();
+      api.onProgress((progress) => {
+        setSyncProgress(progress);
+      });
       const isNative = Capacitor.isNativePlatform();
       
       if (isNative) {
@@ -429,11 +446,41 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center font-sans">
-        <div className="text-center">
-          <Activity className="animate-spin mb-4 text-indigo-600 mx-auto" size={48} />
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center font-sans p-6">
+        <div className="max-w-md w-full text-center">
+          <Activity className="animate-spin mb-6 text-indigo-600 dark:text-indigo-400 mx-auto" size={48} />
           <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">Synchronizing Dashboard...</h2>
           <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm font-medium">Hold on, we're fetching your audiobooks data.</p>
+          
+          {syncProgress && (
+            <div className="mt-8 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm text-left animate-fade-in">
+              <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2.5">
+                <span className="truncate pr-4">
+                  {syncProgress.type === 'books' 
+                    ? `Caching ${syncProgress.libraryName || 'Library'} Books` 
+                    : 'Syncing User Sessions'}
+                </span>
+                <span className="font-mono text-indigo-600 dark:text-indigo-400 shrink-0">{syncProgress.percentage}%</span>
+              </div>
+              
+              {/* Progress track */}
+              <div className="w-full bg-slate-100 dark:bg-slate-950 rounded-full h-2 overflow-hidden mb-3">
+                <div 
+                  className="bg-indigo-650 dark:bg-indigo-500 h-full rounded-full transition-all duration-300 ease-out" 
+                  style={{ width: `${syncProgress.percentage}%` }}
+                />
+              </div>
+              
+              <div className="flex justify-between items-center text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
+                <span>
+                  {syncProgress.type === 'books' ? 'Syncing repository items' : 'Rebuilding playback history'}
+                </span>
+                <span className="font-mono">
+                  {syncProgress.current} / {syncProgress.total}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -592,6 +639,7 @@ export default function App() {
                   books={books}
                   libraries={libraries}
                   isDark={darkMode}
+                  syncProgress={syncProgress}
                 />
               )}
               {activeTab === 'settings' && (
@@ -607,6 +655,7 @@ export default function App() {
                   darkMode={darkMode}
                   setDarkMode={setDarkMode}
                   syncStatus={syncStatus}
+                  syncProgress={syncProgress}
                   onSyncComplete={async (newStatus) => {
                     setSyncStatus(newStatus);
                     await fetchData();

@@ -2,7 +2,7 @@ import axios, { AxiosInstance } from "axios";
 import { MatchCandidate, Library, Book, User, Session, UserStats } from "../types";
 import { getItem, setItem, removeItem } from "./storage";
 import { Capacitor } from "@capacitor/core";
-import { DataProvider } from "./data-provider";
+import { DataProvider, SyncProgressCallback } from "./data-provider";
 import { ServerDataProvider } from "./server-data-provider";
 import { DirectDataProvider } from "./direct-data-provider";
 
@@ -304,6 +304,12 @@ class ApiClient {
   public async triggerSync(libraryId?: string, forceFull = false, awaitSync = true) {
     if (!this.provider) throw new Error("Provider not initialized");
     return this.provider.triggerSync(libraryId, forceFull, awaitSync);
+  }
+
+  public onProgress(callback: SyncProgressCallback) {
+    if (this.provider && 'onProgress' in this.provider && typeof (this.provider as any).onProgress === 'function') {
+      (this.provider as any).onProgress(callback);
+    }
   }
 }
 

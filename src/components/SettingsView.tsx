@@ -13,6 +13,7 @@ interface SettingsViewProps {
   darkMode?: boolean;
   setDarkMode?: (dark: boolean) => void;
   syncStatus?: any;
+  syncProgress?: any;
   onSyncComplete?: (newStatus: any) => Promise<void>;
 }
 
@@ -21,6 +22,7 @@ export function SettingsView({
   darkMode = false, 
   setDarkMode,
   syncStatus,
+  syncProgress,
   onSyncComplete
 }: SettingsViewProps) {
   const config = api.getConfig();
@@ -268,6 +270,31 @@ export function SettingsView({
               </>
             )}
           </button>
+          
+          {isSyncing && syncProgress && (
+            <div className="mt-4 bg-slate-50 dark:bg-slate-950 border border-slate-200/50 dark:border-slate-800/80 rounded-xl p-3.5 shadow-inner animate-fade-in">
+              <div className="flex justify-between items-center text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">
+                <span className="truncate pr-3">
+                  {syncProgress.type === 'books' 
+                    ? `Caching ${syncProgress.libraryName || 'Library'} Books` 
+                    : 'Syncing Listening History'}
+                </span>
+                <span className="font-mono text-indigo-650 dark:text-indigo-400 shrink-0">{syncProgress.percentage}%</span>
+              </div>
+              
+              <div className="w-full bg-slate-200 dark:bg-slate-900 rounded-full h-1.5 overflow-hidden mb-2">
+                <div 
+                  className="bg-indigo-650 dark:bg-indigo-500 h-full rounded-full transition-all duration-300 ease-out" 
+                  style={{ width: `${syncProgress.percentage}%` }}
+                />
+              </div>
+              
+              <div className="flex justify-between items-center text-[8px] text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-wider">
+                <span>Items Cache Loop</span>
+                <span className="font-mono">{syncProgress.current} / {syncProgress.total}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Theme Settings Section */}

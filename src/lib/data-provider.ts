@@ -29,7 +29,18 @@ export interface SyncStatus {
   lastSessionsSync: number | null;
 }
 
+export interface SyncProgress {
+  type: 'books' | 'sessions';
+  current: number;
+  total: number;
+  percentage: number;
+  libraryName?: string;
+}
+
+export type SyncProgressCallback = (progress: SyncProgress) => void;
+
 export interface DataProvider {
+  onProgress?(callback: SyncProgressCallback): void;
   getLibraries(): Promise<Library[]>;
   getLibraryItems(query: LibraryItemsQuery): Promise<LibraryItemsResponse>;
   getLibraryStats(libraryId: string): Promise<any>;

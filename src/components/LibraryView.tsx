@@ -20,6 +20,7 @@ interface LibraryViewProps {
   books: Book[];
   libraries: Library[];
   isDark?: boolean;
+  syncProgress?: any;
 }
 
 function formatBytes(bytes: number | undefined): string {
@@ -90,7 +91,7 @@ const CustomChartTooltip = ({ active, payload, isDark }: any) => {
   return null;
 };
 
-export function LibraryView({ books: initialBooks, libraries, isDark = false }: LibraryViewProps) {
+export function LibraryView({ books: initialBooks, libraries, isDark = false, syncProgress }: LibraryViewProps) {
   const isMounted = useRef(true);
   useEffect(() => {
     isMounted.current = true;
@@ -530,12 +531,20 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
           </div>
 
           {loading ? (
-            <div className="h-[240px] w-full flex flex-col justify-end gap-4 p-4 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl border border-slate-100 dark:border-slate-800/50 animate-pulse relative overflow-hidden select-none">
-              <div className="absolute inset-0 flex items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-[1px]">
-                <div className="flex flex-col items-center gap-2">
-                  <Clock size={24} className="text-indigo-500 animate-spin" style={{ animationDuration: '3s' }} />
-                  <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Syncing growth trends...</p>
-                </div>
+            <div className="h-[240px] w-full flex flex-col justify-center items-center gap-4 p-4 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl border border-slate-100 dark:border-slate-800/50 relative overflow-hidden select-none">
+              <div className="flex flex-col items-center gap-2 max-w-xs w-full text-center">
+                <Clock size={24} className="text-indigo-500 animate-spin mb-1" style={{ animationDuration: '3s' }} />
+                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  {syncProgress && syncProgress.type === 'books' ? `Syncing library: ${syncProgress.percentage}%` : 'Syncing growth trends...'}
+                </p>
+                {syncProgress && syncProgress.type === 'books' && (
+                  <>
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1 mt-1 overflow-hidden">
+                      <div className="bg-indigo-500 h-full rounded-full transition-all duration-300" style={{ width: `${syncProgress.percentage}%` }} />
+                    </div>
+                    <span className="text-[8px] font-mono text-slate-400 mt-0.5">{syncProgress.current} / {syncProgress.total} books</span>
+                  </>
+                )}
               </div>
             </div>
           ) : chartData.length === 0 ? (
@@ -709,8 +718,18 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
                 {loading ? (
                   <tr>
                     <td colSpan={3} className="px-3 sm:px-5 py-12 text-center">
-                      <RefreshCw size={20} className="animate-spin text-indigo-600 dark:text-indigo-400 mx-auto mb-2" />
-                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Syncing repository contents...</p>
+                      <RefreshCw size={20} className="animate-spin text-indigo-600 dark:text-indigo-400 mx-auto mb-3" />
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                        {syncProgress && syncProgress.type === 'books' ? `Syncing library: ${syncProgress.percentage}%` : 'Syncing repository contents...'}
+                      </p>
+                      {syncProgress && syncProgress.type === 'books' && (
+                        <div className="max-w-[200px] mx-auto mt-2 text-center">
+                          <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1 overflow-hidden">
+                            <div className="bg-indigo-500 h-full rounded-full transition-all duration-300" style={{ width: `${syncProgress.percentage}%` }} />
+                          </div>
+                          <p className="text-[8px] font-mono text-slate-400 dark:text-slate-500 mt-1">{syncProgress.current} / {syncProgress.total} books</p>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ) : paginatedBooks.length === 0 ? (
@@ -778,8 +797,18 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false }: 
           <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {loading ? (
               <div className="col-span-full py-12 text-center">
-                <RefreshCw size={20} className="animate-spin text-indigo-600 dark:text-indigo-400 mx-auto mb-2" />
-                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Syncing repository contents...</p>
+                <RefreshCw size={20} className="animate-spin text-indigo-600 dark:text-indigo-400 mx-auto mb-3" />
+                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                  {syncProgress && syncProgress.type === 'books' ? `Syncing library: ${syncProgress.percentage}%` : 'Syncing repository contents...'}
+                </p>
+                {syncProgress && syncProgress.type === 'books' && (
+                  <div className="max-w-[200px] mx-auto mt-2 text-center">
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1 overflow-hidden">
+                      <div className="bg-indigo-500 h-full rounded-full transition-all duration-300" style={{ width: `${syncProgress.percentage}%` }} />
+                    </div>
+                    <p className="text-[8px] font-mono text-slate-400 dark:text-slate-500 mt-1">{syncProgress.current} / {syncProgress.total} books</p>
+                  </div>
+                )}
               </div>
             ) : paginatedBooks.length === 0 ? (
               <div className="col-span-full py-12 text-center">

@@ -56,6 +56,12 @@ async function startServer() {
     return msg;
   }
 
+  // Intercept and log manual library rescans initiated from the UI
+  app.post("/gateway/api/libraries/:id/scan", (req, res, next) => {
+    console.log(`[Gateway] Library rescan manually triggered via UI/API for library: ${req.params.id}`);
+    next();
+  });
+
   // Always mount the generic gateway proxy middleware so all client calls (API + images) are proxied statelessly
   app.use("/gateway", createProxyMiddleware({
     target: ABS_URL || "http://localhost:13378",

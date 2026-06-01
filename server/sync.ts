@@ -79,17 +79,58 @@ function transformItemToDb(item: any) {
 }
 
 /**
+ * Compare an incoming transformed library item with its cached version to detect changes.
+ */
+function checkItemChanges(db: any, transformed: any) {
+  const existing = db.prepare('SELECT * FROM library_items WHERE id = ?').get(transformed.id) as any;
+  if (!existing) {
+    return { isNew: true, detailUpdated: false, chaptersUpdated: false, changedFields: [] };
+  }
+
+  const changedFields: string[] = [];
+  
+  if (existing.title !== transformed.title) changedFields.push(`title ("${existing.title}" -> "${transformed.title}")`);
+  if (existing.author_name !== transformed.author_name) changedFields.push(`author ("${existing.author_name}" -> "${transformed.author_name}")`);
+  if (existing.narrator_name !== transformed.narrator_name) changedFields.push(`narrator ("${existing.narrator_name}" -> "${transformed.narrator_name}")`);
+  if (existing.series_name !== transformed.series_name) changedFields.push(`series ("${existing.series_name}" -> "${transformed.series_name}")`);
+  if (existing.series_sequence !== transformed.series_sequence) changedFields.push(`series_sequence ("${existing.series_sequence}" -> "${transformed.series_sequence}")`);
+  if (existing.published_year !== transformed.published_year) changedFields.push(`published_year ("${existing.published_year}" -> "${transformed.published_year}")`);
+  if (existing.genres !== transformed.genres) changedFields.push(`genres (${existing.genres} -> ${transformed.genres})`);
+  if (existing.tags !== transformed.tags) changedFields.push(`tags (${existing.tags} -> ${transformed.tags})`);
+  if (existing.description !== transformed.description) changedFields.push(`description updated`);
+  if (existing.publisher !== transformed.publisher) changedFields.push(`publisher ("${existing.publisher}" -> "${transformed.publisher}")`);
+  if (existing.language !== transformed.language) changedFields.push(`language ("${existing.language}" -> "${transformed.language}")`);
+  if (existing.isbn !== transformed.isbn) changedFields.push(`isbn ("${existing.isbn}" -> "${transformed.isbn}")`);
+  if (existing.asin !== transformed.asin) changedFields.push(`asin ("${existing.asin}" -> "${transformed.asin}")`);
+  if (existing.subtitle !== transformed.subtitle) changedFields.push(`subtitle ("${existing.subtitle}" -> "${transformed.subtitle}")`);
+  if (existing.abridged !== transformed.abridged) changedFields.push(`abridged (${existing.abridged} -> ${transformed.abridged})`);
+
+  const chaptersUpdated = existing.num_chapters !== transformed.num_chapters;
+  const detailUpdated = changedFields.length > 0;
+
+  return {
+    isNew: false,
+    detailUpdated,
+    chaptersUpdated,
+    changedFields
+  };
+}
+
+/**
  * Perform a full sync of a library (fetch all items, delete removed ones)
  */
 export async function syncLibraryFull(libraryId: string): Promise<void> {
   const db = getDatabase();
-  console.log(`[Sync] Starting full sync for library: ${libraryId}`);
+  console.log(`[Sync] Library rescan triggered for library: ${libraryId} (FULL)`);
   
   const headers = getAuthHeaders();
   let page = 0;
   const limit = 100;
   let hasMore = true;
   const fetchedIds: Set<string> = new Set();
+  
+  let addedCount = 0;
+  let actualUpdatedCount = 0;
 
   const insertStmt = db.prepare(`
     INSERT OR REPLACE INTO library_items (
@@ -133,7 +174,23 @@ export async function syncLibraryFull(libraryId: string): Promise<void> {
 
     const transformedItems = results.map((item: any) => {
       fetchedIds.add(item.id);
-      return transformItemToDb(item);
+      const transformed = transformItemToDb(item);
+      
+      const change = checkItemChanges(db, transformed);
+      if (change.isNew) {
+        addedCount++;
+      } else if (change.detailUpdated || change.chaptersUpdated) {
+        actualUpdatedCount++;
+        if (change.detailUpdated) {
+          console.log(`[Sync] Book detail updated for "${transformed.title}" (ID: ${transformed.id}): ${change.changedFields.join(', ')}`);
+        }
+        if (change.chaptersUpdated) {
+          const existing = db.prepare('SELECT num_chapters FROM library_items WHERE id = ?').get(transformed.id) as any;
+          console.log(`[Sync] Chapters updated for "${transformed.title}" (ID: ${transformed.id}) (num_chapters: ${existing?.num_chapters ?? 0} -> ${transformed.num_chapters})`);
+        }
+      }
+      
+      return transformed;
     });
 
     // Run batch insert
@@ -148,9 +205,10 @@ export async function syncLibraryFull(libraryId: string): Promise<void> {
   // Delete items from cache that were removed from ABS
   const allCachedItems = db.prepare('SELECT id FROM library_items WHERE library_id = ?').all(libraryId) as { id: string }[];
   const deletedIds = allCachedItems.filter(item => !fetchedIds.has(item.id)).map(item => item.id);
+  const deletedCount = deletedIds.length;
   
-  if (deletedIds.length > 0) {
-    console.log(`[Sync] Purging ${deletedIds.length} deleted items from cache for library ${libraryId}`);
+  if (deletedCount > 0) {
+    console.log(`[Sync] Purging ${deletedCount} deleted items from cache for library ${libraryId}`);
     const deleteStmt = db.prepare('DELETE FROM library_items WHERE id = ?');
     const runDeleteTx = db.transaction((ids: string[]) => {
       for (const id of ids) {
@@ -167,7 +225,8 @@ export async function syncLibraryFull(libraryId: string): Promise<void> {
     VALUES (?, ?, ?, ?)
   `).run(libraryId, Date.now(), Date.now(), totalCount);
 
-  console.log(`[Sync] Full sync completed for library ${libraryId}. Cached ${totalCount} items.`);
+  const totalChanged = addedCount + actualUpdatedCount + deletedCount;
+  console.log(`[Sync] Library rescan finished for library: ${libraryId} (FULL). Total books changed: ${totalChanged} (Added: ${addedCount}, Updated: ${actualUpdatedCount}, Deleted: ${deletedCount}).`);
 }
 
 /**
@@ -182,12 +241,15 @@ export async function syncLibraryIncremental(libraryId: string): Promise<void> {
     return syncLibraryFull(libraryId);
   }
 
-  console.log(`[Sync] Starting incremental sync for library: ${libraryId}`);
+  console.log(`[Sync] Library rescan triggered for library: ${libraryId} (INCREMENTAL)`);
   const headers = getAuthHeaders();
   let page = 0;
   const limit = 50;
   let hasMore = true;
   let updatedCount = 0;
+  
+  let addedCount = 0;
+  let actualUpdatedCount = 0;
 
   const insertStmt = db.prepare(`
     INSERT OR REPLACE INTO library_items (
@@ -242,7 +304,22 @@ export async function syncLibraryIncremental(libraryId: string): Promise<void> {
         break;
       }
 
-      transformed.push(transformItemToDb(item));
+      const transformedItem = transformItemToDb(item);
+      const change = checkItemChanges(db, transformedItem);
+      if (change.isNew) {
+        addedCount++;
+      } else if (change.detailUpdated || change.chaptersUpdated) {
+        actualUpdatedCount++;
+        if (change.detailUpdated) {
+          console.log(`[Sync] Book detail updated for "${transformedItem.title}" (ID: ${transformedItem.id}): ${change.changedFields.join(', ')}`);
+        }
+        if (change.chaptersUpdated) {
+          const existing = db.prepare('SELECT num_chapters FROM library_items WHERE id = ?').get(transformedItem.id) as any;
+          console.log(`[Sync] Chapters updated for "${transformedItem.title}" (ID: ${transformedItem.id}) (num_chapters: ${existing?.num_chapters ?? 0} -> ${transformedItem.num_chapters})`);
+        }
+      }
+
+      transformed.push(transformedItem);
       updatedCount++;
     }
 
@@ -266,7 +343,8 @@ export async function syncLibraryIncremental(libraryId: string): Promise<void> {
     WHERE library_id = ?
   `).run(Date.now(), countRes.count, libraryId);
 
-  console.log(`[Sync] Incremental sync completed for library ${libraryId}. Updated ${updatedCount} items. Total: ${countRes.count}`);
+  const totalChanged = addedCount + actualUpdatedCount;
+  console.log(`[Sync] Library rescan finished for library: ${libraryId} (INCREMENTAL). Total books changed: ${totalChanged} (Added: ${addedCount}, Updated: ${actualUpdatedCount}).`);
 }
 
 /**

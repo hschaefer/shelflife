@@ -10,6 +10,9 @@ import {
 } from "recharts";
 import { Book, Library, Session, UserStats } from "../types";
 import { formatDuration, formatTotalTime, cn } from "../lib/utils";
+import { CoverImage } from "./CoverImage";
+import { BookDetailsModal } from "./BookDetailsModal";
+import { AnimatePresence } from "motion/react";
 
 interface StatisticsViewProps {
   recentBooks?: Book[];
@@ -23,9 +26,11 @@ interface StatisticsViewProps {
   sessions?: Session[];
   activeSessions?: Session[];
   isDark?: boolean;
+  onOpenUser?: (userId: string) => void;
 }
 
 export function StatisticsView({ 
+  recentBooks = [],
   dashboardStats,
   dashboardLoading,
   dashboardTimeframe,
@@ -35,9 +40,11 @@ export function StatisticsView({
   sessions = [],
   totalBooks = 0,
   activeSessions = [],
-  isDark = false
+  isDark = false,
+  onOpenUser
 }: StatisticsViewProps) {
   const [chartType, setChartType] = useState<'line' | 'bar'>('bar');
+  const [selectedBookForDetails, setSelectedBookForDetails] = useState<Book | null>(null);
   
   const lineChartData = useMemo(() => dashboardStats?.lineChartData || [], [dashboardStats]);
   const hourlyActivityData = useMemo(() => dashboardStats?.hourlyActivityData || [], [dashboardStats]);
@@ -76,14 +83,24 @@ export function StatisticsView({
       }
     }
 
-    const booksMap: Record<string, { title: string; time: number; sessions: number; listeners: Set<string> }> = {};
+    const booksMap: Record<string, { title: string; time: number; sessions: number; listeners: Set<string>; id?: string; author?: string }> = {};
 
     filteredSessions.forEach(session => {
       const title = session.displayTitle || session.mediaItemTitle || "Unknown Book";
       const time = session.timeListening || session.duration || 0;
       
       if (!booksMap[title]) {
-        booksMap[title] = { title, time: 0, sessions: 0, listeners: new Set() };
+        booksMap[title] = { 
+          title, 
+          time: 0, 
+          sessions: 0, 
+          listeners: new Set(),
+          id: session.libraryItemId,
+          author: (session as any).mediaMetadata?.authorName || 
+                  (session as any).mediaMetadata?.author || 
+                  (session as any).displayAuthor ||
+                  "Unknown Author"
+        };
       }
       booksMap[title].time += time;
       booksMap[title].sessions += 1;
@@ -94,7 +111,9 @@ export function StatisticsView({
       title: b.title,
       time: b.time,
       sessions: b.sessions,
-      listeners: b.listeners.size
+      listeners: b.listeners.size,
+      id: b.id,
+      author: b.author
     }));
 
     if (topBooksMetric === 'time') {
@@ -337,15 +356,45 @@ export function StatisticsView({
                 const percent = Math.round((currentVal / maxVal) * 100);
                 
                 return (
-                  <div key={book.title} className="flex flex-col gap-1.5 p-2 rounded-xl border border-slate-50 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 hover:border-slate-100 dark:hover:border-slate-800 transition-all group select-none">
+                  <div 
+                    key={book.title} 
+                    onClick={() => {
+                      if (book.id) {
+                        const fullBook = recentBooks?.find(b => b.id === book.id) || {
+                          id: book.id,
+                          libraryId: "",
+                          metadata: { title: book.title, authorName: book.author || "Unknown Author" },
+                          addedAt: Date.now()
+                        };
+                        setSelectedBookForDetails(fullBook as Book);
+                      }
+                    }}
+                    className="flex flex-col gap-1.5 p-2 rounded-xl border border-slate-50 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 hover:border-slate-100 dark:hover:border-slate-800 transition-all group select-none cursor-pointer"
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                        <div className="w-6 h-6 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-[10px] font-black shadow-sm shrink-0">
+                        <div className="w-5 h-5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-[9px] font-black shadow-sm shrink-0">
                            {idx + 1}
                         </div>
-                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                          {book.title}
-                        </span>
+                        <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-md overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-300 dark:text-slate-600 relative shrink-0">
+                          {book.id ? (
+                            <CoverImage
+                              itemId={book.id}
+                              title={book.title}
+                              className="w-full h-full object-cover aspect-square"
+                            />
+                          ) : (
+                            <BookOpen size={16} />
+                          )}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                            {book.title}
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate">
+                            {book.author}
+                          </span>
+                        </div>
                       </div>
                       <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
                         {topBooksMetric === 'time' ? formatTotalTime(book.time) : currentVal}
@@ -447,7 +496,11 @@ export function StatisticsView({
           </div>
           <div className="flex-grow overflow-y-auto no-scrollbar pr-1 flex flex-col gap-3">
             {(topListenersMetric === 'time' ? sortedUsersByTime : sortedUsersByCompletion).map((user, idx) => (
-              <div key={user.userId} className="flex items-center justify-between p-2 rounded-xl border border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40">
+              <div 
+                key={user.userId} 
+                onClick={() => onOpenUser && onOpenUser(user.userId)}
+                className="flex items-center justify-between p-2 rounded-xl border border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
+              >
                 <div className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-sm ${topListenersMetric === 'time' ? 'bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 text-slate-700 dark:text-slate-200' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'}`}>
                     {topListenersMetric === 'time' ? (idx + 1) : <CheckCircle2 size={16} />}
@@ -536,6 +589,18 @@ export function StatisticsView({
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {selectedBookForDetails && (
+          <BookDetailsModal
+            book={selectedBookForDetails}
+            initialTab="details"
+            onClose={() => setSelectedBookForDetails(null)}
+            onMatchSuccess={() => {}}
+            isDark={isDark}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -23,10 +23,14 @@ interface UsersViewProps {
   books: Book[];
   sessionsLoading: boolean;
   isDark?: boolean;
+  selectedUserId?: string | null;
+  onSelectUser?: (userId: string | null) => void;
 }
 
-export function UsersView({ users, sessions, userStats, books, sessionsLoading, isDark = false }: UsersViewProps) {
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+export function UsersView({ users, sessions, userStats, books, sessionsLoading, isDark = false, selectedUserId: controlledSelectedUserId, onSelectUser }: UsersViewProps) {
+  const [internalSelectedUserId, setInternalSelectedUserId] = useState<string | null>(null);
+  const selectedUserId = controlledSelectedUserId !== undefined ? controlledSelectedUserId : internalSelectedUserId;
+  const setSelectedUserId = onSelectUser || setInternalSelectedUserId;
   const [searchQuery, setSearchQuery] = useState("");
   type ViewMode = 'recent' | 'all-books' | 'full-log';
   type ProgressFilter = 'all' | 'completed' | 'unfinished';

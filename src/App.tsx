@@ -48,6 +48,7 @@ const NAV_ITEMS = [
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Theme configuration
@@ -644,6 +645,10 @@ export default function App() {
                   sessions={sessions}
                   activeSessions={activeSessions}
                   isDark={darkMode}
+                  onOpenUser={(userId) => {
+                    setSelectedUserId(userId);
+                    setActiveTab('users');
+                  }}
                 />
               )}
               {activeTab === 'users' && (
@@ -654,6 +659,8 @@ export default function App() {
                   books={books}
                   sessionsLoading={sessionsLoading}
                   isDark={darkMode}
+                  selectedUserId={selectedUserId}
+                  onSelectUser={setSelectedUserId}
                 />
               )}
               {activeTab === 'library' && (

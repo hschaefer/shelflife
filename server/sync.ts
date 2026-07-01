@@ -230,7 +230,7 @@ export async function syncLibraryFull(libraryId: string): Promise<void> {
 }
 
 /**
- * Perform incremental delta sync using updatedAt descending
+ * Perform incremental delta sync by checking for changes and falling back to full sync if needed
  */
 export async function syncLibraryIncremental(libraryId: string): Promise<void> {
   const db = getDatabase();
@@ -241,110 +241,45 @@ export async function syncLibraryIncremental(libraryId: string): Promise<void> {
     return syncLibraryFull(libraryId);
   }
 
-  console.log(`[Sync] Library rescan triggered for library: ${libraryId} (INCREMENTAL)`);
+  console.log(`[Sync] Library rescan triggered for library: ${libraryId} (INCREMENTAL SMART)`);
   const headers = getAuthHeaders();
-  let page = 0;
-  const limit = 50;
-  let hasMore = true;
-  let updatedCount = 0;
   
-  let addedCount = 0;
-  let actualUpdatedCount = 0;
-
-  const insertStmt = db.prepare(`
-    INSERT OR REPLACE INTO library_items (
-      id, library_id, title, author_name, narrator_name, series_name, series_sequence,
-      duration, published_year, genres, tags, added_at, updated_at, size,
-      num_audio_files, has_cover, description, publisher, language, isbn, asin,
-      subtitle, abridged, num_chapters
-    ) VALUES (
-      @id, @library_id, @title, @author_name, @narrator_name, @series_name, @series_sequence,
-      @duration, @published_year, @genres, @tags, @added_at, @updated_at, @size,
-      @num_audio_files, @has_cover, @description, @publisher, @language, @isbn, @asin,
-      @subtitle, @abridged, @num_chapters
-    )
-  `);
-
-  const runTransaction = db.transaction((items: any[]) => {
-    for (const item of items) {
-      insertStmt.run(item);
-    }
+  // 1. Fetch all item IDs and updatedAt with a lightweight request
+  const url = getAbsUrl(`/api/libraries/${libraryId}/items`);
+  const response = await axios.get(url, {
+    headers,
+    params: { limit: 0, expanded: 0 }
   });
-
-  while (hasMore) {
-    const url = getAbsUrl(`/api/libraries/${libraryId}/items`);
-    const response = await axios.get(url, {
-      headers,
-      params: {
-        limit,
-        page,
-        sort: 'updatedAt',
-        desc: 1,
-        expanded: 1
-      }
-    });
-
-    const results = response.data?.results || [];
-    if (results.length === 0) {
-      hasMore = false;
-      break;
+  
+  const results = response.data?.results || [];
+  const fetchedIds = new Set<string>();
+  const changedIds = new Set<string>();
+  
+  for (const item of results) {
+    fetchedIds.add(item.id);
+    const cached = db.prepare('SELECT updated_at FROM library_items WHERE id = ?').get(item.id) as { updated_at: number } | undefined;
+    
+    // If not in cache, or updatedAt is different, we have a change
+    if (!cached || cached.updated_at !== item.updatedAt) {
+      changedIds.add(item.id);
     }
-
-    const transformed: any[] = [];
-    let stopIncremental = false;
-
-    for (const item of results) {
-      // Check if we already have this exact updated version in our cache
-      const cached = db.prepare('SELECT updated_at FROM library_items WHERE id = ?').get(item.id) as { updated_at: number } | undefined;
-      
-      if (cached && cached.updated_at === item.updatedAt) {
-        // Since we are sorting by updatedAt descending, as soon as we see an item 
-        // that matches our cached updatedAt, we can stop the sync!
-        stopIncremental = true;
-        break;
-      }
-
-      const transformedItem = transformItemToDb(item);
-      const change = checkItemChanges(db, transformedItem);
-      if (change.isNew) {
-        addedCount++;
-      } else if (change.detailUpdated || change.chaptersUpdated) {
-        actualUpdatedCount++;
-        if (change.detailUpdated) {
-          console.log(`[Sync] Book detail updated for "${transformedItem.title}" (ID: ${transformedItem.id}): ${change.changedFields.join(', ')}`);
-        }
-        if (change.chaptersUpdated) {
-          const existing = db.prepare('SELECT num_chapters FROM library_items WHERE id = ?').get(transformedItem.id) as any;
-          console.log(`[Sync] Chapters updated for "${transformedItem.title}" (ID: ${transformedItem.id}) (num_chapters: ${existing?.num_chapters ?? 0} -> ${transformedItem.num_chapters})`);
-        }
-      }
-
-      transformed.push(transformedItem);
-      updatedCount++;
-    }
-
-    if (transformed.length > 0) {
-      runTransaction(transformed);
-    }
-
-    if (stopIncremental || results.length < limit) {
-      hasMore = false;
-      break;
-    }
-
-    page++;
   }
-
-  // Update incremental sync timestamp and total count
-  const countRes = db.prepare('SELECT COUNT(*) as count FROM library_items WHERE library_id = ?').get(libraryId) as { count: number };
-  db.prepare(`
-    UPDATE sync_state 
-    SET last_incremental_sync = ?, total_items = ?
-    WHERE library_id = ?
-  `).run(Date.now(), countRes.count, libraryId);
-
-  const totalChanged = addedCount + actualUpdatedCount;
-  console.log(`[Sync] Library rescan finished for library: ${libraryId} (INCREMENTAL). Total books changed: ${totalChanged} (Added: ${addedCount}, Updated: ${actualUpdatedCount}).`);
+  
+  // Check for deleted items
+  const allCachedItems = db.prepare('SELECT id FROM library_items WHERE library_id = ?').all(libraryId) as { id: string }[];
+  const deletedIds = allCachedItems.filter(item => !fetchedIds.has(item.id)).map(item => item.id);
+  
+  if (changedIds.size === 0 && deletedIds.length === 0) {
+     // Just update the sync timestamp
+     db.prepare(`UPDATE sync_state SET last_incremental_sync = ?, total_items = ? WHERE library_id = ?`)
+       .run(Date.now(), fetchedIds.size, libraryId);
+     console.log(`[Sync] Library rescan finished for library: ${libraryId} (INCREMENTAL SMART). Total books changed: 0`);
+     return;
+  }
+  
+  // If there are any changes, fallback to robust full sync pagination to fetch all expanded data
+  console.log(`[Sync] Detected ${changedIds.size} changed items and ${deletedIds.length} deleted items. Falling back to full sync for data retrieval.`);
+  return syncLibraryFull(libraryId);
 }
 
 /**

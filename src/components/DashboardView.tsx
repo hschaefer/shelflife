@@ -30,6 +30,7 @@ interface DashboardViewProps {
   userStats: UserStats[];
   libraries: Library[];
   activeSessions: Session[];
+  sessions: Session[];
   isDark?: boolean;
 }
 
@@ -42,7 +43,8 @@ export function DashboardView({
   onTimeframeChange, 
   userStats, 
   libraries, 
-  activeSessions, 
+  activeSessions,
+  sessions = [],
   isDark = false
 }: DashboardViewProps) {
   const isAndroid = Capacitor.getPlatform() === 'android';
@@ -50,6 +52,7 @@ export function DashboardView({
   const timeframe = dashboardTimeframe;
   const setTimeframe = onTimeframeChange;
   const [recentActivityWindow, setRecentActivityWindow] = useState<'1' | '7'>('7');
+  const [recentActivityViewMode, setRecentActivityViewMode] = useState<'user' | 'session'>('user');
   const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>({});
   const [selectedBookForDetails, setSelectedBookForDetails] = useState<Book | null>(null);
   const [initialModalTab, setInitialModalTab] = useState<'details' | 'match' | 'chapters'>('details');
@@ -129,6 +132,20 @@ export function DashboardView({
       return matchUsername || matchBooks;
     });
   }, [last7DaysActivitiesGrouped, recentActivitySearch]);
+
+  const filteredRecentSessions = useMemo(() => {
+    const cutoff = subDays(new Date(), recentActivityWindow === '1' ? 1 : 7).getTime();
+    let recent = sessions.filter(s => s.startedAt >= cutoff);
+    if (recentActivitySearch.trim()) {
+      const query = recentActivitySearch.toLowerCase();
+      recent = recent.filter(s => {
+        const username = (s.username || "").toLowerCase();
+        const title = (s.displayTitle || s.mediaItemTitle || "").toLowerCase();
+        return username.includes(query) || title.includes(query);
+      });
+    }
+    return recent.sort((a, b) => b.startedAt - a.startedAt);
+  }, [sessions, recentActivityWindow, recentActivitySearch]);
 
   const getSessionBookInfo = (session: Session) => {
     const itemId = session.libraryItemId;
@@ -241,6 +258,21 @@ export function DashboardView({
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
+                {([{ label: 'By User', value: 'user' }, { label: 'By Session', value: 'session' }] as const).map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setRecentActivityViewMode(opt.value)}
+                    className={`px-2 py-1 text-[9px] font-bold uppercase rounded-md transition-all cursor-pointer ${
+                      recentActivityViewMode === opt.value
+                        ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
                 {([{ label: '24H', value: '1' }, { label: '7D', value: '7' }] as const).map((opt) => (
                   <button
                     key={opt.value}
@@ -299,102 +331,176 @@ export function DashboardView({
               ))
             ) : (
               <>
-                {filteredRecentActivityGrouped.map((user) => {
-                  const isCollapsed = expandedUsers[user.userId] === false;
-                  return (
-                    <div key={user.userId} className="flex flex-col gap-2 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/10">
-                      {/* User identity row */}
-                      <div 
-                        onClick={() => toggleUserExpanded(user.userId)}
-                        className="flex items-center justify-between px-2 py-1 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/80 cursor-pointer rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm transition-all select-none"
-                      >
-                        <div className="flex items-center gap-2">
-                          {isCollapsed ? (
-                            <ChevronRight size={12} className="text-slate-400 shrink-0" />
-                          ) : (
-                            <ChevronDown size={12} className="text-slate-400 shrink-0" />
-                          )}
-                          <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 text-white flex items-center justify-center text-[10px] font-black shadow-sm uppercase shrink-0">
-                            {user.username.charAt(0)}
+                {recentActivityViewMode === 'user' ? (
+                  <>
+                    {filteredRecentActivityGrouped.map((user) => {
+                      const isCollapsed = expandedUsers[user.userId] === false;
+                      return (
+                        <div key={user.userId} className="flex flex-col gap-2 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/10">
+                          {/* User identity row */}
+                          <div 
+                            onClick={() => toggleUserExpanded(user.userId)}
+                            className="flex items-center justify-between px-2 py-1 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/80 cursor-pointer rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm transition-all select-none"
+                          >
+                            <div className="flex items-center gap-2">
+                              {isCollapsed ? (
+                                <ChevronRight size={12} className="text-slate-400 shrink-0" />
+                              ) : (
+                                <ChevronDown size={12} className="text-slate-400 shrink-0" />
+                              )}
+                              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 text-white flex items-center justify-center text-[10px] font-black shadow-sm uppercase shrink-0">
+                                {user.username.charAt(0)}
+                              </div>
+                              <span className="text-[11px] font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">{user.username}</span>
+                              <span className="text-[9px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200/50 dark:border-slate-700 shrink-0">
+                                {user.uniqueBooks.length} active {user.uniqueBooks.length === 1 ? 'book' : 'books'}
+                              </span>
+                            </div>
+                            <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full border border-indigo-100/50 dark:border-indigo-900/50">
+                              {formatTotalTime(user.totalTime)}
+                            </span>
                           </div>
-                          <span className="text-[11px] font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">{user.username}</span>
-                          <span className="text-[9px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200/50 dark:border-slate-700 shrink-0">
-                            {user.uniqueBooks.length} active {user.uniqueBooks.length === 1 ? 'book' : 'books'}
-                          </span>
-                        </div>
-                        <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full border border-indigo-100/50 dark:border-indigo-900/50">
-                          {formatTotalTime(user.totalTime)}
-                        </span>
-                      </div>
 
-                      {/* Sub-list of up to 3 unique books */}
-                      {!isCollapsed && (
-                        <div className="flex flex-col gap-1.5 px-1 pb-1">
-                          {user.uniqueBooks.map(({ title, lastSession }) => {
-                            const { itemId, progressPercent } = getSessionBookInfo(lastSession);
-                            return (
-                              <div key={lastSession.id} className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all group/book">
-                                <div className="w-8 h-8 aspect-square rounded overflow-hidden shadow-sm shrink-0 border border-slate-200/50 dark:border-slate-800 group-hover/book:scale-105 transition-transform relative">
-                                  {itemId ? (
-                                    <CoverImage 
-                                      itemId={itemId} 
-                                      title={title} 
-                                      className="w-full h-full object-cover animate-fade-in" 
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500">
-                                      <BookOpen size={14} />
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex-grow min-w-0">
-                                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover/book:text-indigo-600 dark:group-hover/book:text-indigo-400 transition-colors">{title}</p>
-                                  <div className="flex items-center gap-2 mt-0.5">
-                                    {progressPercent !== null && (
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        <span className="text-[9px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 rounded shrink-0">
-                                          {progressPercent}%
-                                        </span>
-                                        <div className="w-8 h-0.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shrink-0">
-                                          <div 
-                                            className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full" 
-                                            style={{ width: `${progressPercent}%` }}
-                                          />
+                          {/* Sub-list of up to 3 unique books */}
+                          {!isCollapsed && (
+                            <div className="flex flex-col gap-1.5 px-1 pb-1">
+                              {user.uniqueBooks.map(({ title, lastSession }) => {
+                                const { itemId, progressPercent } = getSessionBookInfo(lastSession);
+                                return (
+                                  <div key={lastSession.id} className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all group/book">
+                                    <div className="w-8 h-8 aspect-square rounded overflow-hidden shadow-sm shrink-0 border border-slate-200/50 dark:border-slate-800 group-hover/book:scale-105 transition-transform relative">
+                                      {itemId ? (
+                                        <CoverImage 
+                                          itemId={itemId} 
+                                          title={title} 
+                                          className="w-full h-full object-cover animate-fade-in" 
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500">
+                                          <BookOpen size={14} />
                                         </div>
+                                      )}
+                                    </div>
+                                    <div className="flex-grow min-w-0">
+                                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover/book:text-indigo-600 dark:group-hover/book:text-indigo-400 transition-colors">{title}</p>
+                                      <div className="flex items-center gap-2 mt-0.5">
+                                        {progressPercent !== null && (
+                                          <div className="flex items-center gap-1 shrink-0">
+                                            <span className="text-[9px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 rounded shrink-0">
+                                              {progressPercent}%
+                                            </span>
+                                            <div className="w-8 h-0.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shrink-0">
+                                              <div 
+                                                className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full" 
+                                                style={{ width: `${progressPercent}%` }}
+                                              />
+                                            </div>
+                                          </div>
+                                        )}
+                                        <span className="text-xs text-slate-400 dark:text-slate-500 font-medium truncate">
+                                          Session: {formatDuration(lastSession.timeListening || lastSession.duration || 0)}
+                                        </span>
                                       </div>
-                                    )}
-                                    <span className="text-xs text-slate-400 dark:text-slate-500 font-medium truncate">
-                                      Session: {formatDuration(lastSession.timeListening || lastSession.duration || 0)}
-                                    </span>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                      <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-tight">{formatDistanceToNow(lastSession.startedAt).replace('about ', '')} ago</p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {filteredRecentActivityGrouped.length === 0 && (
+                      <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-2 py-12 flex-grow">
+                        <div className="w-10 h-10 bg-slate-50 dark:bg-slate-800/40 rounded-full flex items-center justify-center opacity-60">
+                          <Activity size={18} className="text-slate-400" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                            {last7DaysActivitiesGrouped.length === 0 ? "Silence reigns" : "No results"}
+                          </p>
+                          <p className="text-[8px] font-medium text-slate-400 dark:text-slate-500">
+                            {last7DaysActivitiesGrouped.length === 0 
+                              ? "No user activity recorded in the last 7 days." 
+                              : "No activity matching your query."}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex flex-col gap-1.5 p-1 pb-1">
+                    {filteredRecentSessions.map((session) => {
+                      const { itemId, progressPercent } = getSessionBookInfo(session);
+                      const title = session.displayTitle || session.mediaItemTitle || "Unknown";
+                      return (
+                        <div key={session.id} className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-800 group/book">
+                          <div className="w-8 h-8 aspect-square rounded overflow-hidden shadow-sm shrink-0 border border-slate-200/50 dark:border-slate-800 group-hover/book:scale-105 transition-transform relative">
+                            {itemId ? (
+                              <CoverImage 
+                                itemId={itemId} 
+                                title={title} 
+                                className="w-full h-full object-cover animate-fade-in" 
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500">
+                                <BookOpen size={14} />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-grow min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover/book:text-indigo-600 dark:group-hover/book:text-indigo-400 transition-colors">
+                                {title}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {progressPercent !== null && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <span className="text-[9px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 rounded shrink-0">
+                                    {progressPercent}%
+                                  </span>
+                                  <div className="w-8 h-0.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shrink-0">
+                                    <div 
+                                      className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full" 
+                                      style={{ width: `${progressPercent}%` }}
+                                    />
                                   </div>
                                 </div>
-                                <div className="text-right shrink-0">
-                                  <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-tight">{formatDistanceToNow(lastSession.startedAt).replace('about ', '')} ago</p>
-                                </div>
-                              </div>
-                            );
-                          })}
+                              )}
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate">
+                                {session.username} • {formatDuration(session.timeListening || session.duration || 0)}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-tight">
+                              {formatDistanceToNow(session.startedAt).replace('about ', '')} ago
+                            </p>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      );
+                    })}
 
-                {filteredRecentActivityGrouped.length === 0 && (
-                  <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-2 py-12 flex-grow">
-                    <div className="w-10 h-10 bg-slate-50 dark:bg-slate-800/40 rounded-full flex items-center justify-center opacity-60">
-                      <Activity size={18} className="text-slate-400" />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                        {last7DaysActivitiesGrouped.length === 0 ? "Silence reigns" : "No results"}
-                      </p>
-                      <p className="text-[8px] font-medium text-slate-400 dark:text-slate-500">
-                        {last7DaysActivitiesGrouped.length === 0 
-                          ? "No user activity recorded in the last 7 days." 
-                          : "No activity matching your query."}
-                      </p>
-                    </div>
+                    {filteredRecentSessions.length === 0 && (
+                      <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-2 py-12 flex-grow">
+                        <div className="w-10 h-10 bg-slate-50 dark:bg-slate-800/40 rounded-full flex items-center justify-center opacity-60">
+                          <Activity size={18} className="text-slate-400" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                            No results
+                          </p>
+                          <p className="text-[8px] font-medium text-slate-400 dark:text-slate-500">
+                            No sessions matching your query.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </>

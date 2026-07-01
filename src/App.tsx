@@ -621,6 +621,7 @@ export default function App() {
                   userStats={userStats}
                   libraries={libraries}
                   activeSessions={activeSessions}
+                  sessions={sessions}
                   isDark={darkMode}
                 />
               )}

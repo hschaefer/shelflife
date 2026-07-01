@@ -257,11 +257,30 @@ export function apiRouter(): Router {
       const limit = parseInt(req.query.limit as string, 10) || parseInt(req.query.itemsPerPage as string, 10) || 100;
       const offset = page * limit;
 
-      const rows = db.prepare(`
-        SELECT raw_data FROM sessions 
-        ORDER BY started_at DESC 
-        LIMIT ? OFFSET ?
-      `).all(limit, offset) as { raw_data: string }[];
+      const libraryItemId = req.query.libraryItemId as string | undefined;
+      const userId = req.query.userId as string | undefined;
+
+      let query = `SELECT raw_data FROM sessions`;
+      const conditions: string[] = [];
+      const queryParams: any[] = [];
+
+      if (libraryItemId) {
+        conditions.push(`library_item_id = ?`);
+        queryParams.push(libraryItemId);
+      }
+      if (userId) {
+        conditions.push(`user_id = ?`);
+        queryParams.push(userId);
+      }
+
+      if (conditions.length > 0) {
+        query += ` WHERE ` + conditions.join(' AND ');
+      }
+      
+      query += ` ORDER BY started_at DESC LIMIT ? OFFSET ?`;
+      queryParams.push(limit, offset);
+
+      const rows = db.prepare(query).all(...queryParams) as { raw_data: string }[];
 
       const sessions = rows.map(r => JSON.parse(r.raw_data));
 

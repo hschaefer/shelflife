@@ -162,6 +162,8 @@ export function DashboardView({
 
 
 
+
+
       {/* Live Playback and Recent Activity Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className={cn(
@@ -510,7 +512,90 @@ export function DashboardView({
       </div>
 
 
-      <div className="mt-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+        {/* Listening History (30 Days) */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col justify-between h-[360px]">
+          <div className="flex items-center justify-between mb-4 px-2 shrink-0">
+            <div>
+              <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight">30 Days Listening History</h3>
+              <p className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-semibold mt-0.5">
+                Global hours consumed
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
+                <button 
+                  onClick={() => setChartType('line')}
+                  className={`px-2 py-1 text-[9px] font-bold uppercase rounded-md transition-all cursor-pointer ${chartType === 'line' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'}`}
+                >
+                  Line
+                </button>
+                <button 
+                  onClick={() => setChartType('bar')}
+                  className={`px-2 py-1 text-[9px] font-bold uppercase rounded-md transition-all cursor-pointer ${chartType === 'bar' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'}`}
+                >
+                  Bar
+                </button>
+              </div>
+            </div>
+          </div>
+          {dashboardLoading ? (
+            <div className="h-[240px] w-full flex flex-col justify-end gap-4 p-4 bg-slate-50/50 dark:bg-slate-800/10 rounded-xl border border-slate-100 dark:border-slate-800 animate-pulse relative overflow-hidden select-none">
+              <div className="absolute inset-0 flex items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-[1px]">
+                <div className="flex flex-col items-center gap-2">
+                  <Activity size={24} className="text-indigo-500 dark:text-indigo-400 animate-spin" style={{ animationDuration: '3s' }} />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="h-[240px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                {chartType === 'line' ? (
+                  <LineChart data={lineChartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#334155" : "#f1f5f9"} />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: isDark ? '#64748b' : '#94a3b8', fontWeight: 600 }} dy={5} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: isDark ? '#64748b' : '#94a3b8', fontWeight: 600 }} />
+                    <Tooltip 
+                      cursor={{ stroke: isDark ? '#334155' : '#e2e8f0', strokeWidth: 1 }}
+                      contentStyle={{ 
+                        backgroundColor: isDark ? '#1e293b' : '#fff', 
+                        borderRadius: '8px', 
+                        border: isDark ? '1px solid #334155' : 'none', 
+                        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                        fontSize: '10px',
+                        fontWeight: '600',
+                        color: isDark ? '#f8fafc' : '#0f172a'
+                      }}
+                      itemStyle={{ color: isDark ? '#f8fafc' : '#0f172a' }}
+                    />
+                    <Line type="monotone" dataKey="hours" stroke="#6366f1" strokeWidth={2} dot={{ r: 3, fill: '#6366f1', strokeWidth: 1.5, stroke: isDark ? '#1e293b' : '#fff' }} activeDot={{ r: 5, strokeWidth: 0 }} />
+                  </LineChart>
+                ) : (
+                  <BarChart data={lineChartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#334155" : "#f1f5f9"} />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: isDark ? '#64748b' : '#94a3b8', fontWeight: 600 }} dy={5} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: isDark ? '#64748b' : '#94a3b8', fontWeight: 600 }} />
+                    <Tooltip 
+                      cursor={{ fill: isDark ? 'rgba(30, 41, 59, 0.4)' : 'rgba(241, 245, 249, 0.6)' }}
+                      contentStyle={{ 
+                        backgroundColor: isDark ? '#1e293b' : '#fff', 
+                        borderRadius: '8px', 
+                        border: isDark ? '1px solid #334155' : 'none', 
+                        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                        fontSize: '10px',
+                        fontWeight: '600',
+                        color: isDark ? '#f8fafc' : '#0f172a'
+                      }}
+                      itemStyle={{ color: isDark ? '#f8fafc' : '#0f172a' }}
+                    />
+                    <Bar dataKey="hours" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                )}
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+
         {/* Recent Additions Card */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col h-[360px]">
           <div className="flex items-center justify-between mb-4 px-2 shrink-0">

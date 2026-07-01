@@ -3,7 +3,7 @@ import {
   X, Search, Sparkles, BookOpen, AlertCircle, 
   CheckCircle2, ChevronRight, Info, RefreshCw, HelpCircle,
   User as UserIcon, Calendar, Building, Globe, Hash, Clock, 
-  Play, Tag, Award
+  Play, Tag, Award, Activity, BarChart3, Users, Headphones
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Book, MatchCandidate } from "../types";
@@ -13,7 +13,7 @@ import { CoverImage } from "./CoverImage";
 
 interface BookDetailsModalProps {
   book: Book;
-  initialTab?: "details" | "match" | "chapters";
+  initialTab?: "details" | "statistics" | "match" | "chapters";
   onClose: () => void;
   onMatchSuccess: () => void;
   isDark?: boolean;
@@ -45,10 +45,43 @@ function formatDuration(seconds: number): string {
 }
 
 export function BookDetailsModal({ book, initialTab = "details", onClose, onMatchSuccess, isDark = false }: BookDetailsModalProps) {
-  const [activeTab, setActiveTab] = useState<"details" | "match" | "chapters">(initialTab);
+  const [activeTab, setActiveTab] = useState<"details" | "statistics" | "match" | "chapters">(initialTab as any);
   const [detailsLoading, setDetailsLoading] = useState(true);
   const [fullItem, setFullItem] = useState<any>(null);
   const [detailsError, setDetailsError] = useState<string | null>(null);
+
+  // Stats tab specific state
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [bookSessions, setBookSessions] = useState<any[]>([]);
+
+  // Fetch book sessions
+  const fetchBookSessions = async () => {
+    setStatsLoading(true);
+    setStatsError(null);
+    try {
+      const data = await api.getSessions({ 
+        libraryItemId: book.id,
+        limit: 5000,
+        sort: "startedAt",
+        desc: "1" 
+      });
+      // Strictly filter client-side in case the data provider ignores the libraryItemId parameter (e.g. Android DirectDataProvider offline cache)
+      const filtered = (data.sessions || []).filter((s: any) => s.libraryItemId === book.id);
+      setBookSessions(filtered);
+    } catch (err: any) {
+      console.error("Failed to fetch book sessions:", err);
+      setStatsError("Failed to retrieve statistics for this audiobook.");
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "statistics" && bookSessions.length === 0 && !statsLoading && !statsError) {
+      fetchBookSessions();
+    }
+  }, [activeTab, book.id]);
 
   // Match tab specific state
   const [provider, setProvider] = useState("audible");
@@ -295,6 +328,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
         <div className="flex border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 px-3 sm:px-5 py-1 gap-0.5 sm:gap-1">
           {[
             { id: "details", label: "Details", icon: Info },
+            { id: "statistics", label: "Stats", icon: Activity },
             { id: "match", label: "Match", icon: Sparkles },
             { id: "chapters", label: "Chapters", icon: Clock }
           ].map((tab) => {
@@ -336,7 +370,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
 
         {/* Main Scrollable Content */}
         <div className="flex-grow overflow-y-auto p-6 flex flex-col min-h-[300px]">
-          {detailsLoading && activeTab !== "match" ? (
+          {detailsLoading && activeTab !== "match" && activeTab !== "statistics" ? (
             <div className="flex-grow flex flex-col items-center justify-center py-16">
               <RefreshCw size={28} className="animate-spin text-indigo-600 dark:text-indigo-400 mb-3" />
               <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
@@ -496,6 +530,199 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                       </div>
                     )}
                   </div>
+                </motion.div>
+              )}
+
+              {activeTab === "statistics" && (
+                <motion.div
+                  key="statistics-tab"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex flex-col gap-6 flex-grow"
+                >
+                  {statsLoading ? (
+                    <div className="flex-grow flex flex-col items-center justify-center py-16">
+                      <RefreshCw size={28} className="animate-spin text-indigo-600 dark:text-indigo-400 mb-3" />
+                      <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                        Compiling statistics...
+                      </p>
+                    </div>
+                  ) : statsError ? (
+                    <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-rose-800 dark:text-rose-400 p-4 rounded-2xl flex items-start gap-2.5 text-xs font-semibold">
+                      <AlertCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
+                      <div>{statsError}</div>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Overall Statistics Summary */}
+                      {(() => {
+                        const totalTime = bookSessions.reduce((acc, s) => acc + (s.timeListening || 0), 0);
+                        const uniqueUsers = new Set(bookSessions.map(s => s.userId)).size;
+                        const totalSessions = bookSessions.length;
+                        const lastListened = bookSessions.reduce((latest, s) => Math.max(latest, s.updatedAt || 0), 0);
+
+                        return (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl flex flex-col gap-1 items-center justify-center text-center">
+                              <Headphones size={20} className="text-indigo-500 mb-1" />
+                              <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Total Time</p>
+                              <p className="text-lg font-black text-slate-800 dark:text-slate-100">{formatDuration(totalTime)}</p>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl flex flex-col gap-1 items-center justify-center text-center">
+                              <Users size={20} className="text-indigo-500 mb-1" />
+                              <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Listeners</p>
+                              <p className="text-lg font-black text-slate-800 dark:text-slate-100">{uniqueUsers}</p>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl flex flex-col gap-1 items-center justify-center text-center">
+                              <BarChart3 size={20} className="text-indigo-500 mb-1" />
+                              <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Sessions</p>
+                              <p className="text-lg font-black text-slate-800 dark:text-slate-100">{totalSessions}</p>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl flex flex-col gap-1 items-center justify-center text-center">
+                              <Calendar size={20} className="text-indigo-500 mb-1" />
+                              <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Last Listened</p>
+                              <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate w-full">
+                                {lastListened > 0 ? new Date(lastListened).toLocaleDateString() : 'Never'}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* User Progress */}
+                      <div className="space-y-3">
+                        <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-2">
+                          User Progress
+                        </h4>
+                        {(() => {
+                          const getSessionProgressPercent = (session: any) => {
+                            if (session.progress !== undefined) return Math.round(session.progress * 100);
+                            if (session.currentTime && session.duration) return Math.round((session.currentTime / session.duration) * 100);
+                            if (session.currentTime && duration) return Math.round((session.currentTime / duration) * 100);
+                            return null;
+                          };
+
+                          // Aggregate latest progress per user
+                          const userProgressMap = new Map();
+                          bookSessions.forEach(s => {
+                            if (!s.user?.username && !s.username) return; // Skip if no user info
+                            const username = s.user?.username || s.username || 'Unknown';
+                            if (!userProgressMap.has(s.userId)) {
+                              userProgressMap.set(s.userId, { username, progressPercent: 0, latestTime: 0 });
+                            }
+                            const existing = userProgressMap.get(s.userId);
+                            const sessionTime = s.startedAt || s.updatedAt || 0;
+                            
+                            if (sessionTime >= existing.latestTime) {
+                              existing.latestTime = sessionTime;
+                              const progress = getSessionProgressPercent(s);
+                              existing.progressPercent = progress !== null ? progress : existing.progressPercent;
+                            }
+                          });
+                          const progressList = Array.from(userProgressMap.values());
+                          
+                          if (progressList.length === 0) {
+                            return (
+                              <div className="text-xs text-slate-400 dark:text-slate-500 italic py-4 text-center">
+                                No listening progress recorded for this book yet.
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="space-y-3">
+                              {progressList.map((p: any, idx) => (
+                                <div key={idx} className="flex items-center gap-4">
+                                  <div className="w-24 shrink-0 truncate text-xs font-bold text-slate-800 dark:text-slate-100">
+                                    {p.username}
+                                  </div>
+                                  <div className="flex-grow h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                    <div 
+                                      className="h-full bg-indigo-500 rounded-full" 
+                                      style={{ width: `${Math.min(100, Math.max(0, p.progressPercent))}%` }} 
+                                    />
+                                  </div>
+                                  <div className="w-12 shrink-0 text-right text-[10px] font-black text-indigo-600 dark:text-indigo-400">
+                                    {Math.round(p.progressPercent)}%
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Recent Sessions */}
+                      <div className="space-y-3">
+                        <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-2">
+                          Recent Sessions
+                        </h4>
+                        {bookSessions.length === 0 ? (
+                          <div className="text-xs text-slate-400 dark:text-slate-500 italic py-4 text-center">
+                            No listening sessions recorded for this book yet.
+                          </div>
+                        ) : (
+                          <div className="space-y-2 max-h-[240px] overflow-y-auto pr-2">
+                            {[...bookSessions]
+                              .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+                              .slice(0, 10)
+                              .map((session, idx) => {
+                                const getSessionProgressPercent = (s: any) => {
+                                  if (s.progress !== undefined) return Math.round(s.progress * 100);
+                                  if (s.currentTime && s.duration) return Math.round((s.currentTime / s.duration) * 100);
+                                  if (s.currentTime && duration) return Math.round((s.currentTime / duration) * 100);
+                                  return null;
+                                };
+                                const sessionProgress = getSessionProgressPercent(session);
+
+                                return (
+                                  <div key={session.id || idx} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-3 flex items-center justify-between">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                                        <Play size={14} className="ml-0.5" />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                                          {session.user?.username || session.username || 'Unknown User'}
+                                        </p>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                          <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                                            {new Date(session.startedAt || session.updatedAt).toLocaleString()}
+                                          </p>
+                                          {sessionProgress !== null && (
+                                            <div className="flex items-center gap-1.5 ml-2">
+                                              <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 py-0.2 rounded">
+                                                {sessionProgress}%
+                                              </span>
+                                              <div className="w-12 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                <div 
+                                                  className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full" 
+                                                  style={{ width: `${Math.min(100, Math.max(0, sessionProgress))}%` }}
+                                                />
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="text-right shrink-0 ml-3">
+                                      <p className="text-xs font-black text-indigo-600 dark:text-indigo-400">
+                                        {formatDuration(session.timeListening || 0)}
+                                      </p>
+                                      <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                                        Listened
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               )}
 
@@ -1032,7 +1259,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
           )}
 
           {/* Details tab network error display */}
-          {detailsError && activeTab !== "match" && (
+          {detailsError && activeTab !== "match" && activeTab !== "statistics" && (
             <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-rose-800 dark:text-rose-400 p-4 rounded-2xl flex items-start gap-2.5 text-xs font-semibold mt-4">
               <AlertCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
               <div>{detailsError}</div>

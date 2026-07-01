@@ -14,7 +14,8 @@ import {
   AlertCircle,
   RefreshCcw,
   Sun,
-  Moon
+  Moon,
+  PieChart
 } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
@@ -30,6 +31,7 @@ import { DashboardView } from "./components/DashboardView";
 import { UsersView } from "./components/UsersView";
 import { LibraryView } from "./components/LibraryView";
 import { SettingsView } from "./components/SettingsView";
+import { StatisticsView } from "./components/StatisticsView";
 import { ConnectionScreen } from "./components/ConnectionScreen";
 import { api } from "./lib/api";
 import { cn } from "./lib/utils";
@@ -38,6 +40,7 @@ import logoDark from "../assets/icon-dark.svg";
 
 const NAV_ITEMS = [
   { id: 'dashboard', icon: BarChart3, label: 'Dashboard' },
+  { id: 'statistics', icon: PieChart, label: 'Statistics' },
   { id: 'users', icon: Users, label: 'Listeners' },
   { id: 'library', icon: LibraryIcon, label: 'Libraries' },
   { id: 'settings', icon: Settings, label: 'Settings' },
@@ -622,6 +625,24 @@ export default function App() {
                   libraries={libraries}
                   activeSessions={activeSessions}
                   sessions={sessions}
+                  isDark={darkMode}
+                />
+              )}
+              {activeTab === 'statistics' && (
+                <StatisticsView 
+                  recentBooks={books}
+                  totalBooks={totalBooks}
+                  dashboardStats={dashboardStats}
+                  dashboardLoading={dashboardLoading}
+                  dashboardTimeframe={dashboardTimeframe}
+                  onTimeframeChange={(tf) => {
+                    setDashboardTimeframe(tf);
+                    fetchDashboardStats(tf);
+                  }}
+                  userStats={userStats}
+                  libraries={libraries}
+                  sessions={sessions}
+                  activeSessions={activeSessions}
                   isDark={darkMode}
                 />
               )}

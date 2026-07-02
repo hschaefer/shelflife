@@ -230,7 +230,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
       {/* Sidebar List */}
       <div className="lg:col-span-3 flex flex-col gap-3">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 overflow-hidden flex flex-col gap-3">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-4 overflow-hidden flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h3 className="text-[11px] font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight">Active Accounts</h3>
             <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest">{users.length} Total</span>
@@ -243,7 +243,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
               placeholder="Search user..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg py-1.5 pl-9 pr-3 text-[11px] font-medium focus:ring-1 focus:ring-indigo-100 dark:focus:ring-indigo-950/50 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-md py-1.5 pl-9 pr-3 text-[11px] font-medium focus:ring-1 focus:ring-indigo-100 dark:focus:ring-indigo-955/50 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
             />
           </div>
 
@@ -257,8 +257,8 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                   key={user.id}
                   onClick={() => setSelectedUserId(user.id)}
                   className={cn(
-                    "flex items-center justify-between p-2 rounded-xl transition-all group cursor-pointer",
-                    isActive ? "bg-indigo-600 text-white shadow-md shadow-indigo-100 dark:shadow-none" : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                    "flex items-center justify-between p-2 rounded-md transition-all group cursor-pointer",
+                    isActive ? "bg-slate-200/80 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-bold border-l-2 border-indigo-600 dark:border-indigo-500 rounded-l-none" : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
                   )}
                 >
                   <div className="flex items-center gap-2 text-left">
@@ -295,7 +295,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
       {/* Detail View */}
       <div className="lg:col-span-9">
         {!selectedUserId ? (
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 border-dashed h-full min-h-[400px] flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-3 p-8">
+          <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 border-dashed h-full min-h-[400px] flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-3 p-8">
             <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800/40 rounded-full flex items-center justify-center opacity-50">
               <Users size={24} />
             </div>
@@ -307,9 +307,9 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
         ) : (
           <div className="flex flex-col gap-4">
             {/* Header / Stats */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 relative overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-6 relative overflow-hidden">
                <div className="flex flex-col md:flex-row gap-6 items-start md:items-center relative z-10">
-                <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-100/50 dark:shadow-none border-2 border-white dark:border-slate-800 animate-fade-in">
+                <div className="w-16 h-16 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 animate-fade-in">
                   <UserIcon size={32} />
                 </div>
                 <div>
@@ -339,10 +339,10 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
 
             {/* Charts Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4">
+              <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-4">
                 <h3 className="text-[11px] font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight mb-4">Recent Activity (14 Days)</h3>
                 {sessionsLoading ? (
-                  <div className="h-[180px] w-full flex flex-col justify-end gap-3 p-2 bg-slate-50/50 dark:bg-slate-800/10 rounded-xl border border-slate-100 dark:border-slate-800 animate-pulse relative overflow-hidden select-none">
+                  <div className="h-[180px] w-full flex flex-col justify-end gap-3 p-2 bg-slate-50/50 dark:bg-slate-800/10 rounded-md border border-slate-100 dark:border-slate-800 animate-pulse relative overflow-hidden select-none">
                     <div className="absolute inset-0 flex items-center justify-center bg-white/40 dark:bg-slate-900/40">
                       <Clock size={20} className="text-indigo-500 dark:text-indigo-400 animate-spin" style={{ animationDuration: '3s' }} />
                     </div>
@@ -361,35 +361,35 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                   <div className="h-[180px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={userActivityChartData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#334155" : "#f1f5f9"} />
-                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: isDark ? '#64748b' : '#94a3b8', fontWeight: 600 }} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: isDark ? '#64748b' : '#94a3b8', fontWeight: 600 }} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-default)" />
+                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: 'var(--text-secondary)', fontWeight: 600 }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: 'var(--text-secondary)', fontWeight: 600 }} />
                         <Tooltip 
-                          cursor={{ fill: isDark ? 'rgba(30, 41, 59, 0.4)' : 'rgba(241, 245, 249, 0.6)' }}
+                          cursor={{ fill: isDark ? 'rgba(30, 41, 59, 0.2)' : 'rgba(241, 245, 249, 0.4)' }}
                           contentStyle={{ 
-                            backgroundColor: isDark ? '#1e293b' : '#fff', 
-                            borderRadius: '8px', 
-                            border: isDark ? '1px solid #334155' : 'none', 
-                            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                            backgroundColor: isDark ? '#161b22' : '#ffffff', 
+                            borderRadius: '6px', 
+                            border: '1px solid var(--border-default)', 
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
                             fontSize: '10px',
                             fontWeight: '600',
-                            color: isDark ? '#f8fafc' : '#0f172a'
+                            color: 'var(--text-primary)'
                           }}
                           itemStyle={{
-                            color: isDark ? '#f8fafc' : '#0f172a'
+                            color: 'var(--text-primary)'
                           }}
                         />
-                        <Bar dataKey="hours" fill="#6366f1" radius={[2, 2, 0, 0]} barSize={16} />
+                        <Bar dataKey="hours" fill="var(--indigo-600)" radius={[2, 2, 0, 0]} barSize={16} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 )}
               </div>
 
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4">
+              <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-4">
                 <h3 className="text-[11px] font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight mb-4">Active Hours (14 Days)</h3>
                 {sessionsLoading ? (
-                  <div className="h-[180px] w-full flex flex-col justify-end gap-3 p-2 bg-slate-50/50 dark:bg-slate-800/10 rounded-xl border border-slate-100 dark:border-slate-800 animate-pulse relative overflow-hidden select-none">
+                  <div className="h-[180px] w-full flex flex-col justify-end gap-3 p-2 bg-slate-50/50 dark:bg-slate-800/10 rounded-md border border-slate-100 dark:border-slate-800 animate-pulse relative overflow-hidden select-none">
                     <div className="absolute inset-0 flex items-center justify-center bg-white/40 dark:bg-slate-900/40">
                       <Clock size={20} className="text-indigo-500 dark:text-indigo-400 animate-spin" style={{ animationDuration: '3s' }} />
                     </div>
@@ -408,25 +408,25 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                   <div className="h-[180px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={userHourlyActivityData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#334155" : "#f1f5f9"} />
-                        <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: isDark ? '#64748b' : '#94a3b8', fontWeight: 600 }} interval={3} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: isDark ? '#64748b' : '#94a3b8', fontWeight: 600 }} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-default)" />
+                        <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: 'var(--text-secondary)', fontWeight: 600 }} interval={3} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: 'var(--text-secondary)', fontWeight: 600 }} />
                         <Tooltip 
-                          cursor={{ fill: isDark ? 'rgba(30, 41, 59, 0.4)' : 'rgba(241, 245, 249, 0.6)' }}
+                          cursor={{ fill: isDark ? 'rgba(30, 41, 59, 0.2)' : 'rgba(241, 245, 249, 0.4)' }}
                           contentStyle={{ 
-                            backgroundColor: isDark ? '#1e293b' : '#fff', 
-                            borderRadius: '8px', 
-                            border: isDark ? '1px solid #334155' : 'none', 
-                            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                            backgroundColor: isDark ? '#161b22' : '#ffffff', 
+                            borderRadius: '6px', 
+                            border: '1px solid var(--border-default)', 
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
                             fontSize: '10px',
                             fontWeight: '600',
-                            color: isDark ? '#f8fafc' : '#0f172a'
+                            color: 'var(--text-primary)'
                           }}
                           itemStyle={{
-                            color: isDark ? '#f8fafc' : '#0f172a'
+                            color: 'var(--text-primary)'
                           }}
                         />
-                        <Bar dataKey="hours" fill="#6366f1" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="hours" fill="var(--indigo-600)" radius={[2, 2, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -435,7 +435,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
             </div>
 
             {/* Heatmap */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 min-h-[180px]">
+            <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-4 min-h-[180px]">
               <Suspense fallback={
                 <div className="h-[130px] w-full flex flex-col justify-center items-center text-slate-400 dark:text-slate-500 gap-2.5">
                   <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
@@ -451,7 +451,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
             </div>
 
             {/* Session Logs */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mb-6">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mb-6">
               <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h3 className="text-[11px] font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight">Listening Sessions</h3>
@@ -463,7 +463,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {/* View Mode Selector */}
-                  <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+                  <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200/50 dark:border-slate-700/50">
                     {[
                       { label: "Recent", value: "recent" },
                       { label: "All Books", value: "all-books" },
@@ -473,7 +473,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                         key={mode.value}
                         onClick={() => setViewMode(mode.value as ViewMode)}
                         className={cn(
-                          "px-2 py-1 text-[9px] font-bold uppercase rounded-md transition-all cursor-pointer",
+                          "px-2 py-1 text-[9px] font-bold uppercase transition-all cursor-pointer",
                           viewMode === mode.value 
                             ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' 
                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
@@ -486,7 +486,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
 
                   {/* Progress Filter (only shown when viewMode is 'all-books') */}
                   {viewMode === 'all-books' && (
-                    <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50 animate-pulse-subtle">
+                    <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200/50 dark:border-slate-700/50 animate-pulse-subtle">
                       {[
                         { label: "All Status", value: "all" },
                         { label: "Completed (>99%)", value: "completed" },
@@ -496,7 +496,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                           key={filter.value}
                           onClick={() => setProgressFilter(filter.value as ProgressFilter)}
                           className={cn(
-                            "px-2 py-1 text-[9px] font-bold uppercase rounded-md transition-all cursor-pointer",
+                            "px-2 py-1 text-[9px] font-bold uppercase transition-all cursor-pointer",
                             progressFilter === filter.value 
                               ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-sm' 
                               : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
@@ -530,19 +530,19 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                         <tr key={rIdx} className="animate-pulse bg-white/20 dark:bg-slate-800/10 select-none">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded bg-slate-200 dark:bg-slate-800 shrink-0" />
+                              <div className="w-8 h-8 bg-slate-200 dark:bg-slate-800 shrink-0" />
                               <div className="flex-grow">
-                                <div className="w-32 h-3 bg-slate-200 dark:bg-slate-800 rounded mb-1" />
-                                <div className="w-20 h-2 bg-slate-100 dark:bg-slate-850 rounded" />
+                                <div className="w-32 h-3 bg-slate-200 dark:bg-slate-800 mb-1" />
+                                <div className="w-20 h-2 bg-slate-100 dark:bg-slate-800" />
                               </div>
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <div className="w-12 h-3.5 bg-slate-200 dark:bg-slate-800 rounded" />
+                            <div className="w-12 h-3.5 bg-slate-200 dark:bg-slate-800" />
                           </td>
                           <td className="px-4 py-3">
-                    <div className="w-16 h-3 bg-slate-200 dark:bg-slate-800 rounded mb-1" />
-                            <div className="w-10 h-2 bg-slate-100 dark:bg-slate-850 rounded" />
+                            <div className="w-16 h-3 bg-slate-200 dark:bg-slate-800 mb-1" />
+                            <div className="w-10 h-2 bg-slate-100 dark:bg-slate-800" />
                           </td>
                         </tr>
                       ))
@@ -554,7 +554,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                             <tr key={lastSession.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
                               <td className="px-4 py-2">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 aspect-square rounded overflow-hidden shadow-sm shrink-0 border border-slate-200/50 dark:border-slate-800 relative">
+                                  <div className="w-8 h-8 aspect-square shadow-sm shrink-0 border border-slate-200/50 dark:border-slate-800 relative">
                                     {itemId ? (
                                       <CoverImage 
                                         itemId={itemId} 
@@ -572,12 +572,12 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                                     <div className="flex items-center gap-2 mt-1">
                                       {progressPercent !== null && (
                                         <div className="flex items-center gap-1.5">
-                                          <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 py-0.2 rounded">
+                                          <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 py-0.2">
                                             {progressPercent}%
                                           </span>
-                                          <div className="w-12 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                          <div className="w-12 h-1 bg-slate-100 dark:bg-slate-800 overflow-hidden">
                                             <div 
-                                              className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full" 
+                                              className="h-full bg-indigo-600 dark:bg-indigo-500" 
                                               style={{ width: `${progressPercent}%` }}
                                             />
                                           </div>
@@ -612,7 +612,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                             <tr key={session.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
                               <td className="px-4 py-2">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 aspect-square rounded overflow-hidden shadow-sm shrink-0 border border-slate-200/50 dark:border-slate-800 relative">
+                                  <div className="w-8 h-8 aspect-square shadow-sm shrink-0 border border-slate-200/50 dark:border-slate-800 relative">
                                     {itemId ? (
                                       <CoverImage 
                                         itemId={itemId} 
@@ -630,12 +630,12 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                                     <div className="flex items-center gap-2 mt-1">
                                       {progressPercent !== null && (
                                         <div className="flex items-center gap-1.5">
-                                          <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 py-0.2 rounded">
+                                          <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 py-0.2">
                                             {progressPercent}%
                                           </span>
-                                          <div className="w-12 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                          <div className="w-12 h-1 bg-slate-100 dark:bg-slate-800 overflow-hidden">
                                             <div 
-                                              className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full" 
+                                              className="h-full bg-indigo-600 dark:bg-indigo-500" 
                                               style={{ width: `${progressPercent}%` }}
                                             />
                                           </div>
@@ -670,7 +670,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                             <tr key={lastSession.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
                               <td className="px-4 py-2">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 aspect-square rounded overflow-hidden shadow-sm shrink-0 border border-slate-200/50 dark:border-slate-800 relative">
+                                  <div className="w-8 h-8 aspect-square shadow-sm shrink-0 border border-slate-200/50 dark:border-slate-800 relative">
                                     {itemId ? (
                                       <CoverImage 
                                         itemId={itemId} 
@@ -688,12 +688,12 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                                     <div className="flex items-center gap-2 mt-1">
                                       {progressPercent !== null && (
                                         <div className="flex items-center gap-1.5">
-                                          <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 py-0.2 rounded">
+                                          <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 py-0.2">
                                             {progressPercent}%
                                           </span>
-                                          <div className="w-12 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                          <div className="w-12 h-1 bg-slate-100 dark:bg-slate-800 overflow-hidden">
                                             <div 
-                                              className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full" 
+                                              className="h-full bg-indigo-600 dark:bg-indigo-500" 
                                               style={{ width: `${progressPercent}%` }}
                                             />
                                           </div>
@@ -729,9 +729,9 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
               {!sessionsLoading && activeItemsCount > SESSIONS_PER_PAGE && (
                 <div className="px-4 py-3 bg-slate-50/30 dark:bg-slate-800/10 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
                   <div className="font-semibold text-slate-500 dark:text-slate-400">
-                    Showing <span className="text-slate-855 dark:text-slate-200">{(sessionPage - 1) * SESSIONS_PER_PAGE + 1}</span> to{" "}
-                    <span className="text-slate-855 dark:text-slate-200">{Math.min(activeItemsCount, sessionPage * SESSIONS_PER_PAGE)}</span> of{" "}
-                    <span className="text-slate-855 dark:text-slate-205">{activeItemsCount}</span> entries
+                    Showing <span className="font-bold text-slate-900 dark:text-slate-100">{(sessionPage - 1) * SESSIONS_PER_PAGE + 1}</span> to{" "}
+                    <span className="font-bold text-slate-900 dark:text-slate-100">{Math.min(activeItemsCount, sessionPage * SESSIONS_PER_PAGE)}</span> of{" "}
+                    <span className="font-bold text-slate-900 dark:text-slate-100">{activeItemsCount}</span> entries
                   </div>
                   
                   <div className="flex items-center gap-1.5">
@@ -740,7 +740,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                       onClick={() => setSessionPage(1)}
                       disabled={sessionPage === 1}
                       className={cn(
-                        "p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                        "p-1.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-955 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
                       )}
                       title="First Page"
                     >
@@ -752,7 +752,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                       onClick={() => setSessionPage(prev => Math.max(1, prev - 1))}
                       disabled={sessionPage === 1}
                       className={cn(
-                        "p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                        "p-1.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-955 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
                       )}
                       title="Previous Page"
                     >
@@ -766,9 +766,9 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                         onClick={() => typeof p === 'number' && setSessionPage(p)}
                         disabled={p === '...'}
                         className={cn(
-                          "min-w-8 h-8 px-2 rounded-lg text-[10px] font-extrabold transition-all flex items-center justify-center cursor-pointer",
+                          "min-w-8 h-8 px-2 text-[10px] font-extrabold transition-all flex items-center justify-center cursor-pointer",
                           p === sessionPage
-                            ? "bg-indigo-650 dark:bg-indigo-600 text-white shadow-sm"
+                            ? "bg-indigo-600 dark:bg-indigo-600 text-white shadow-sm"
                             : p === '...'
                             ? "text-slate-400 dark:text-slate-600 cursor-default"
                             : "border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-350"
@@ -783,7 +783,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                       onClick={() => setSessionPage(prev => Math.min(totalSessionPages, prev + 1))}
                       disabled={sessionPage === totalSessionPages}
                       className={cn(
-                        "p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                        "p-1.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
                       )}
                       title="Next Page"
                     >
@@ -795,7 +795,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                       onClick={() => setSessionPage(totalSessionPages)}
                       disabled={sessionPage === totalSessionPages}
                       className={cn(
-                        "p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                        "p-1.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
                       )}
                       title="Last Page"
                     >

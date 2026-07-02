@@ -160,46 +160,43 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center p-4 sm:p-6 selection:bg-indigo-100 dark:selection:bg-indigo-950 selection:text-indigo-900 dark:selection:text-indigo-200 transition-colors duration-200 font-sans">
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200/80 dark:border-slate-800 pt-5 pb-8 px-8 sm:pt-6 sm:pb-10 sm:px-10 relative overflow-hidden"
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="max-w-md w-full bg-white dark:bg-slate-900 rounded-md border border-slate-200 dark:border-slate-800 pt-5 pb-8 px-8 sm:pt-6 sm:pb-10 sm:px-10 relative overflow-hidden"
       >
-        {/* Sleek aesthetic background accent */}
-        <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 dark:bg-indigo-950/20 rounded-bl-full -z-10" />
-        
         <div className="text-center mb-8">
           <motion.img 
             src={isDark ? logoDark : logoLight} 
             alt="ShelfLife Logo" 
-            className="w-40 h-40 object-contain mx-auto mt-0 mb-1 cursor-pointer"
-            whileHover={{ scale: 1.05, rotate: 3 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+            className="w-32 h-32 object-contain mx-auto mt-0 mb-1 cursor-pointer"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.15 }}
           />
-          <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
             Shelf<span className="text-indigo-600 dark:text-indigo-400">Life</span>
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider mt-1.5 font-sans">
+          <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider mt-1 font-sans">
             Connect your Audiobookshelf Server
           </p>
         </div>
 
-        <form onSubmit={handleConnect} className="space-y-5">
+        <form onSubmit={handleConnect} className="space-y-4">
           {/* Server URL Input */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+            <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
               Audiobookshelf URL
             </label>
-            <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 rounded-2xl group focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-950/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
-              <Globe size={16} className="text-slate-400 dark:text-slate-550 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
+            <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-md group focus-within:ring-1 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-950/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
+              <Globe size={14} className="text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
               <input
                 type="text"
                 placeholder="https://abs.example.com"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 disabled={loading}
-                className="bg-transparent border-none text-xs font-semibold focus:ring-0 placeholder:text-slate-404 dark:placeholder:text-slate-600 w-full outline-none text-slate-800 dark:text-slate-100"
+                className="bg-transparent border-none text-xs font-semibold focus:ring-0 placeholder:text-slate-400 w-full outline-none text-slate-800 dark:text-slate-100"
                 required
               />
             </div>
@@ -209,15 +206,15 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
           </div>
 
           {/* Auth Method Selector */}
-          <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-950 p-1 rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div className="grid grid-cols-2 gap-1 bg-slate-50 dark:bg-slate-950 p-1 rounded-md border border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={() => setAuthMethod("credentials")}
               disabled={loading}
-              className={`py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`py-1.5 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                 authMethod === "credentials"
-                  ? "bg-white dark:bg-slate-800 text-indigo-650 dark:text-indigo-400 shadow-sm"
-                  : "text-slate-500 dark:text-slate-450 hover:text-slate-800 dark:hover:text-slate-200"
+                  ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-slate-700/50"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 border border-transparent"
               }`}
             >
               Credentials
@@ -226,10 +223,10 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
               type="button"
               onClick={() => setAuthMethod("token")}
               disabled={loading}
-              className={`py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`py-1.5 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                 authMethod === "token"
-                  ? "bg-white dark:bg-slate-800 text-indigo-650 dark:text-indigo-400 shadow-sm"
-                  : "text-slate-500 dark:text-slate-450 hover:text-slate-800 dark:hover:text-slate-200"
+                  ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-slate-700/50"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 border border-transparent"
               }`}
             >
               API Token
@@ -241,26 +238,26 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
             {authMethod === "credentials" ? (
               <motion.div
                 key="credentials"
-                initial={{ opacity: 0, x: -10 }}
+                initial={{ opacity: 0, x: -5 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                transition={{ duration: 0.2 }}
-                className="space-y-4"
+                exit={{ opacity: 0, x: 5 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-3"
               >
                 {/* Username */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                     Username
                   </label>
-                  <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 rounded-2xl group focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-950/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
-                    <User size={16} className="text-slate-400 dark:text-slate-550 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
+                  <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-md group focus-within:ring-1 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-950/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
+                    <User size={14} className="text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
                     <input
                       type="text"
                       placeholder="Username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       disabled={loading}
-                      className="bg-transparent border-none text-xs font-semibold focus:ring-0 placeholder:text-slate-404 dark:placeholder:text-slate-600 w-full outline-none text-slate-800 dark:text-slate-100"
+                      className="bg-transparent border-none text-xs font-semibold focus:ring-0 placeholder:text-slate-400 w-full outline-none text-slate-800 dark:text-slate-100"
                       required={authMethod === "credentials"}
                     />
                   </div>
@@ -268,18 +265,18 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
 
                 {/* Password */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                     Password
                   </label>
-                  <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 rounded-2xl group focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-950/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
-                    <Lock size={16} className="text-slate-400 dark:text-slate-550 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
+                  <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-md group focus-within:ring-1 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-950/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
+                    <Lock size={14} className="text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
                     <input
                       type="password"
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       disabled={loading}
-                      className="bg-transparent border-none text-xs font-semibold focus:ring-0 placeholder:text-slate-404 dark:placeholder:text-slate-600 w-full outline-none text-slate-800 dark:text-slate-100"
+                      className="bg-transparent border-none text-xs font-semibold focus:ring-0 placeholder:text-slate-400 w-full outline-none text-slate-800 dark:text-slate-100"
                       required={authMethod === "credentials"}
                     />
                   </div>
@@ -288,24 +285,24 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
             ) : (
               <motion.div
                 key="token"
-                initial={{ opacity: 0, x: 10 }}
+                initial={{ opacity: 0, x: 5 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
+                exit={{ opacity: 0, x: -5 }}
+                transition={{ duration: 0.15 }}
                 className="space-y-1.5"
               >
-                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                   API Token / Personal Access Token
                 </label>
-                <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 rounded-2xl group focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-950/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
-                  <Key size={16} className="text-slate-400 dark:text-slate-550 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
+                <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-md group focus-within:ring-1 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-955/30 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
+                  <Key size={14} className="text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
                   <input
                     type="password"
                     placeholder="Paste API token from User Settings"
                     value={token}
                     onChange={(e) => setToken(e.target.value)}
                     disabled={loading}
-                    className="bg-transparent border-none text-xs font-semibold focus:ring-0 placeholder:text-slate-404 dark:placeholder:text-slate-600 w-full outline-none text-slate-800 dark:text-slate-100"
+                    className="bg-transparent border-none text-xs font-semibold focus:ring-0 placeholder:text-slate-400 w-full outline-none text-slate-800 dark:text-slate-100"
                     required={authMethod === "token"}
                   />
                 </div>
@@ -317,19 +314,19 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
           </AnimatePresence>
 
           {/* Advanced / Extra Headers */}
-          <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
+          <div className="border border-slate-200 dark:border-slate-800 rounded-md overflow-hidden bg-white dark:bg-slate-900">
             <button
               type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="w-full flex items-center justify-between px-4 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-950 transition-colors cursor-pointer"
+              className="w-full flex items-center justify-between px-4 py-2.5 text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-950 transition-colors cursor-pointer"
             >
               <span className="flex items-center gap-2">
-                <ShieldAlert size={13} className="text-slate-400 dark:text-slate-550" />
+                <ShieldAlert size={13} className="text-slate-400 dark:text-slate-500" />
                 Advanced
               </span>
               <ChevronDown
                 size={14}
-                className={`text-slate-400 dark:text-slate-550 transition-transform duration-200 ${
+                className={`text-slate-400 dark:text-slate-500 transition-transform duration-200 ${
                   showAdvanced ? "rotate-180" : ""
                 }`}
               />
@@ -341,11 +338,11 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.22, ease: "easeInOut" }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
                   className="overflow-hidden"
                 >
                   <div className="px-4 pb-4 pt-1 space-y-2 border-t border-slate-100 dark:border-slate-800">
-                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                    <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                       Extra Auth Headers (JSON)
                     </label>
                     <textarea
@@ -355,7 +352,7 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
                       onChange={(e) => setExtraHeadersInput(e.target.value)}
                       disabled={loading}
                       spellCheck={false}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-[11px] font-mono text-slate-800 dark:text-slate-200 placeholder:text-slate-400/70 dark:placeholder:text-slate-600 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/30 focus:border-indigo-400 dark:focus:border-indigo-500 transition-all"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-3 py-2 text-[11px] font-mono text-slate-800 dark:text-slate-200 placeholder:text-slate-400/70 dark:placeholder:text-slate-600 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-100 dark:focus:ring-indigo-950/30 focus:border-indigo-400 dark:focus:border-indigo-500 transition-all"
                     />
                     <p className="text-[10px] text-slate-400/80 dark:text-slate-500 font-medium leading-relaxed">
                       Optional. For servers behind <span className="text-slate-500 dark:text-slate-400 font-semibold">Cloudflare Access</span>, paste your Service Token JSON.
@@ -371,19 +368,19 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
             <AnimatePresence mode="wait">
               {status.type && (
                 <motion.div
-                  initial={{ opacity: 0, y: -8 }}
+                  initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  className={`p-4 rounded-2xl flex items-start gap-3 mb-4 text-xs font-semibold ${
+                  exit={{ opacity: 0, y: -5 }}
+                  className={`p-3.5 rounded-md flex items-start gap-3 mb-4 text-xs font-semibold ${
                     status.type === "success"
-                      ? "bg-emerald-50 dark:bg-emerald-955/20 text-emerald-800 dark:text-emerald-450 border border-emerald-100 dark:border-emerald-900/30"
-                      : "bg-rose-50 dark:bg-rose-955/20 text-rose-800 dark:text-rose-455 border border-rose-100 dark:border-rose-900/30"
+                      ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30"
+                      : "bg-rose-50 dark:bg-rose-950/20 text-rose-800 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30"
                   }`}
                 >
                   {status.type === "success" ? (
-                    <Check size={16} className="shrink-0 text-emerald-650 dark:text-emerald-400 mt-0.5" />
+                    <Check size={14} className="shrink-0 text-emerald-500 mt-0.5" />
                   ) : (
-                    <AlertCircle size={16} className="shrink-0 text-rose-650 dark:text-rose-400 mt-0.5" />
+                    <AlertCircle size={14} className="shrink-0 text-rose-500 mt-0.5" />
                   )}
                   <div className="leading-relaxed">{status.message}</div>
                 </motion.div>
@@ -393,7 +390,7 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider transition-all hover:shadow-lg hover:shadow-indigo-105 dark:hover:shadow-none flex items-center justify-center gap-2 group disabled:opacity-50 cursor-pointer active:scale-98"
+              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 group disabled:opacity-50 cursor-pointer"
             >
               {loading ? (
                 <>
@@ -403,7 +400,7 @@ export function ConnectionScreen({ onSuccess, isDark = false }: ConnectionScreen
               ) : (
                 <>
                   Establish Link
-                  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                  <ArrowRight size={14} />
                 </>
               )}
             </button>

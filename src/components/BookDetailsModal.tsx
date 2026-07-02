@@ -289,23 +289,20 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
   const duration = media.duration || 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-955/60 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
         transition={{ type: "spring", duration: 0.4 }}
-        className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-800 max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden relative"
+        className="bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200/80 dark:border-slate-800 max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden relative"
       >
-        {/* Visual background accents */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-bl-full -z-10" />
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-slate-50 dark:bg-slate-950/20 rounded-tr-full -z-10" />
 
         {/* Modal Header */}
         <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/20 dark:bg-slate-900/10">
           <div>
             <div className="flex items-center gap-2">
-              <span className="p-1.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-lg shrink-0">
+              <span className="p-1.5 bg-indigo-50 dark:bg-indigo-955/50 text-indigo-600 dark:text-indigo-400 rounded-md shrink-0">
                 <BookOpen size={16} />
               </span>
               <h3 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight truncate max-w-[280px] sm:max-w-md">
@@ -318,7 +315,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
           </div>
           <button 
             onClick={onClose}
-            className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+            className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-all cursor-pointer"
           >
             <X size={16} />
           </button>
@@ -342,14 +339,14 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                   setMatchError(null);
                 }}
                 className={cn(
-                  "flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all rounded-xl relative cursor-pointer",
+                  "flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all rounded-md relative cursor-pointer",
                   isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-800/30"
                 )}
               >
                 {isActive && (
                   <motion.div 
                     layoutId="modalActiveTabIndicator" 
-                    className="absolute inset-0 bg-white dark:bg-slate-800 shadow-sm border border-slate-200/50 dark:border-slate-700/30 rounded-xl -z-10"
+                    className="absolute inset-0 bg-white dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700/30 rounded-md -z-10"
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
                 )}
@@ -357,7 +354,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                 {tab.label}
                 {tab.id === "chapters" && chapters.length > 0 && (
                   <span className={cn(
-                    "ml-0.5 sm:ml-1 text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.25 sm:py-0.5 rounded-full",
+                    "ml-0.5 sm:ml-1 text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.25 sm:py-0.5 rounded-md",
                     isActive ? "bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-400" : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                   )}>
                     {chapters.length}
@@ -390,7 +387,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                 >
                   {/* Left Column - Cover and Pills */}
                   <div className="md:col-span-4 flex flex-col gap-4">
-                    <div className="aspect-square bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-md flex items-center justify-center text-slate-300 dark:text-slate-700 relative group hover:scale-[1.01] transition-transform">
+                    <div className="aspect-square bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md overflow-hidden flex items-center justify-center text-slate-300 dark:text-slate-700 relative group hover:scale-[1.01] transition-transform">
                       <CoverImage
                         itemId={book.id}
                         title={displayTitle}
@@ -400,10 +397,10 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
 
                     {/* Quick Stats Pill */}
                     {duration > 0 && (
-                      <div className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/20 rounded-2xl p-3 flex items-center gap-3">
+                      <div className="bg-indigo-50 dark:bg-indigo-955/20 border border-indigo-100/50 dark:border-indigo-900/20 rounded-md p-3 flex items-center gap-3">
                         <Clock size={16} className="text-indigo-600 dark:text-indigo-400" />
                         <div>
-                          <p className="text-[8px] font-bold text-indigo-400 dark:text-indigo-500 uppercase tracking-widest leading-none">Total Duration</p>
+                          <p className="text-[8px] font-bold text-indigo-400 dark:text-indigo-505 uppercase tracking-widest leading-none">Total Duration</p>
                           <p className="text-xs font-bold text-indigo-900 dark:text-indigo-200 mt-1">{formatDuration(duration)}</p>
                         </div>
                       </div>
@@ -412,14 +409,14 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                     {/* Genres Badges */}
                     {displayGenres.length > 0 && (
                       <div className="space-y-1.5">
-                        <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1">
+                        <span className="text-[9px] font-black text-slate-400 dark:text-slate-505 uppercase tracking-widest flex items-center gap-1">
                           <Tag size={10} /> Genres
                         </span>
                         <div className="flex flex-wrap gap-1">
                           {displayGenres.map((genre: string, i: number) => (
                             <span 
                               key={i} 
-                              className="bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100/30 dark:border-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[9px] font-bold px-2 py-0.5 rounded-lg"
+                              className="bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100/30 dark:border-indigo-900/30 text-indigo-700 dark:text-indigo-305 text-[9px] font-bold px-2 py-0.5 rounded-md"
                             >
                               {genre}
                             </span>
@@ -434,13 +431,13 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                     <div>
                       <h4 className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight leading-snug">{displayTitle}</h4>
                       {displaySubtitle && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium tracking-tight mt-1">{displaySubtitle}</p>
+                        <p className="text-xs text-slate-505 text-slate-500 dark:text-slate-400 font-medium tracking-tight mt-1">{displaySubtitle}</p>
                       )}
                       
                       {seriesList.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
                           {seriesList.map((s: any, idx: number) => (
-                            <div key={idx} className="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/30 text-amber-800 dark:text-amber-400 text-[9px] font-bold px-2 py-0.5 rounded-lg shadow-sm">
+                            <div key={idx} className="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-955/30 border border-amber-100 dark:border-amber-900/30 text-amber-800 dark:text-amber-400 text-[9px] font-bold px-2 py-0.5 rounded-md">
                               <Award size={10} />
                               <span>{s.name || s} {s.sequence && `#${s.sequence}`}</span>
                             </div>
@@ -519,13 +516,13 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                     {/* Book Description */}
                     {displayDescription ? (
                       <div className="space-y-1.5">
-                        <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Description</span>
-                        <div className="bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed max-h-[180px] overflow-y-auto shadow-inner">
+                        <span className="text-[9px] font-black text-slate-400 dark:text-slate-505 uppercase tracking-widest block">Description</span>
+                        <div className="bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 p-4 rounded-md text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed max-h-[180px] overflow-y-auto">
                           {displayDescription}
                         </div>
                       </div>
                     ) : (
-                      <div className="bg-slate-50 dark:bg-slate-950 border border-dashed border-slate-200 dark:border-slate-800 p-6 rounded-2xl text-center text-slate-400 dark:text-slate-500 text-xs font-semibold">
+                      <div className="bg-slate-50 dark:bg-slate-955 border border-dashed border-slate-200 dark:border-slate-800 p-6 rounded-md text-center text-slate-400 dark:text-slate-500 text-xs font-semibold">
                         No description cataloged for this asset.
                       </div>
                     )}
@@ -550,7 +547,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                       </p>
                     </div>
                   ) : statsError ? (
-                    <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-rose-800 dark:text-rose-400 p-4 rounded-2xl flex items-start gap-2.5 text-xs font-semibold">
+                    <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-rose-800 dark:text-rose-400 p-4 rounded-md flex items-start gap-2.5 text-xs font-semibold">
                       <AlertCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
                       <div>{statsError}</div>
                     </div>
@@ -565,24 +562,24 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
 
                         return (
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl flex flex-col gap-1 items-center justify-center text-center">
-                              <Headphones size={20} className="text-indigo-500 mb-1" />
+                            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-md flex flex-col gap-1 items-center justify-center text-center">
+                              <Headphones size={20} className="text-indigo-505 mb-1" />
                               <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Total Time</p>
                               <p className="text-lg font-black text-slate-800 dark:text-slate-100">{formatDuration(totalTime)}</p>
                             </div>
-                            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl flex flex-col gap-1 items-center justify-center text-center">
-                              <Users size={20} className="text-indigo-500 mb-1" />
+                            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-md flex flex-col gap-1 items-center justify-center text-center">
+                              <Users size={20} className="text-indigo-505 mb-1" />
                               <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Listeners</p>
                               <p className="text-lg font-black text-slate-800 dark:text-slate-100">{uniqueUsers}</p>
                             </div>
-                            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl flex flex-col gap-1 items-center justify-center text-center">
-                              <BarChart3 size={20} className="text-indigo-500 mb-1" />
-                              <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Sessions</p>
+                            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-md flex flex-col gap-1 items-center justify-center text-center">
+                              <BarChart3 size={20} className="text-indigo-505 mb-1" />
+                              <p className="text-[9px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-widest">Sessions</p>
                               <p className="text-lg font-black text-slate-800 dark:text-slate-100">{totalSessions}</p>
                             </div>
-                            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl flex flex-col gap-1 items-center justify-center text-center">
-                              <Calendar size={20} className="text-indigo-500 mb-1" />
-                              <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Last Listened</p>
+                            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-md flex flex-col gap-1 items-center justify-center text-center">
+                              <Calendar size={20} className="text-indigo-505 mb-1" />
+                              <p className="text-[9px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-widest">Last Listened</p>
                               <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate w-full">
                                 {lastListened > 0 ? new Date(lastListened).toLocaleDateString() : 'Never'}
                               </p>
@@ -638,9 +635,9 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                                   <div className="w-24 shrink-0 truncate text-xs font-bold text-slate-800 dark:text-slate-100">
                                     {p.username}
                                   </div>
-                                  <div className="flex-grow h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                  <div className="flex-grow h-2.5 bg-slate-100 dark:bg-slate-800 rounded-md overflow-hidden">
                                     <div 
-                                      className="h-full bg-indigo-500 rounded-full" 
+                                      className="h-full bg-indigo-500 rounded-md" 
                                       style={{ width: `${Math.min(100, Math.max(0, p.progressPercent))}%` }} 
                                     />
                                   </div>
@@ -678,9 +675,9 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                                 const sessionProgress = getSessionProgressPercent(session);
 
                                 return (
-                                  <div key={session.id || idx} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-3 flex items-center justify-between">
+                                  <div key={session.id || idx} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-md p-3 flex items-center justify-between">
                                     <div className="flex items-center gap-3 min-w-0">
-                                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                                      <div className="w-8 h-8 rounded-md bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
                                         <Play size={14} className="ml-0.5" />
                                       </div>
                                       <div className="min-w-0">
@@ -693,12 +690,12 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                                           </p>
                                           {sessionProgress !== null && (
                                             <div className="flex items-center gap-1.5 ml-2">
-                                              <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 py-0.2 rounded">
+                                              <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-955/40 px-1 py-0.2 rounded-md">
                                                 {sessionProgress}%
                                               </span>
-                                              <div className="w-12 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                              <div className="w-12 h-1 bg-slate-100 dark:bg-slate-800 rounded-md overflow-hidden">
                                                 <div 
-                                                  className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full" 
+                                                  className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-md" 
                                                   style={{ width: `${Math.min(100, Math.max(0, sessionProgress))}%` }}
                                                 />
                                               </div>
@@ -737,13 +734,13 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                 >
                   {/* Search Fields Form */}
                   {!selectedCandidate && (
-                    <form onSubmit={handleMatchSearch} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl">
+                    <form onSubmit={handleMatchSearch} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 p-4 rounded-md">
                       <div className="md:col-span-1 space-y-1.5">
                         <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Provider</label>
                         <select
                           value={provider}
                           onChange={(e) => setProvider(e.target.value)}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/30 outline-none transition-all cursor-pointer hover:border-slate-300 dark:hover:border-slate-700"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 focus:ring-1 focus:ring-indigo-100 dark:focus:ring-indigo-955/30 outline-none transition-all cursor-pointer hover:border-slate-300 dark:hover:border-slate-700"
                         >
                           {PROVIDERS.map((prov) => (
                             <option key={prov.id} value={prov.id}>
@@ -760,7 +757,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                           placeholder="Title"
                           value={searchTitle}
                           onChange={(e) => setSearchTitle(e.target.value)}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/30 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-550 outline-none transition-all"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md px-3.5 py-1.5 text-xs font-semibold focus:ring-1 focus:ring-indigo-100 dark:focus:ring-indigo-955/30 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-550 outline-none transition-all"
                           required
                         />
                       </div>
@@ -772,7 +769,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                           placeholder="Author (Optional)"
                           value={searchAuthor}
                           onChange={(e) => setSearchAuthor(e.target.value)}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/30 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md px-3.5 py-1.5 text-xs font-semibold focus:ring-1 focus:ring-indigo-100 dark:focus:ring-indigo-955/30 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all"
                         />
                       </div>
 
@@ -780,7 +777,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                         <button
                           type="submit"
                           disabled={matchLoading}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-wider px-5 py-2 rounded-xl transition-all active:scale-95 shadow-md shadow-indigo-100 dark:shadow-none flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-wider px-5 py-2 rounded-md transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                         >
                           {matchLoading ? <RefreshCw size={12} className="animate-spin" /> : <Search size={12} />}
                           {matchLoading ? "SEARCHING..." : "SEARCH MATCHES"}
@@ -793,7 +790,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                   <div className="flex-grow flex flex-col min-h-[220px]">
                     {/* Error notification */}
                     {matchError && (
-                      <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-rose-800 dark:text-rose-400 p-4 rounded-2xl flex items-start gap-2.5 text-xs font-semibold mb-4 animate-shake animate-duration-300">
+                      <div className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900/30 text-rose-800 dark:text-rose-400 p-4 rounded-md flex items-start gap-2.5 text-xs font-semibold mb-4 animate-shake animate-duration-300">
                         <AlertCircle size={16} className="text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
                         <div>{matchError}</div>
                       </div>
@@ -822,9 +819,9 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: idx * 0.03 }}
                               onClick={() => setSelectedCandidate(candidate)}
-                              className="group border border-slate-100 dark:border-slate-800 rounded-2xl p-3 flex gap-4 bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer items-start"
+                              className="group border border-slate-100 dark:border-slate-800 rounded-md p-3 flex gap-4 bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer items-start"
                             >
-                              <div className="w-12 h-18 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-slate-300 dark:text-slate-700 group-hover:shadow-sm transition-shadow">
+                              <div className="w-12 h-18 bg-slate-50 dark:bg-slate-955 border border-slate-100 dark:border-slate-800 rounded-md overflow-hidden shrink-0 flex items-center justify-center text-slate-305 dark:text-slate-700 transition-shadow">
                                 {candidate.coverUrl ? (
                                   <img
                                     src={candidate.coverUrl}
@@ -850,7 +847,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                                   </span>
                                 </div>
                                 {candidate.subtitle && (
-                                  <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold leading-tight mt-0.5 truncate">{candidate.subtitle}</p>
+                                  <p className="text-[9px] text-slate-400 dark:text-slate-550 font-semibold leading-tight mt-0.5 truncate">{candidate.subtitle}</p>
                                 )}
                                 <p className="text-[9px] text-slate-600 dark:text-slate-300 font-bold mt-1">By {candidate.author || "Unknown Author"}</p>
                                 
@@ -862,7 +859,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                                 </div>
                               </div>
 
-                              <div className="self-center p-1 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950/40 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 rounded-lg transition-colors">
+                              <div className="self-center p-1 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-955/40 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 rounded-md transition-colors">
                                 <ChevronRight size={14} />
                               </div>
                             </motion.div>
@@ -874,7 +871,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                     {/* Unsearched placeholder */}
                     {!matchLoading && !matchSearched && (
                       <div className="flex-grow flex flex-col items-center justify-center py-12 text-center">
-                        <HelpCircle size={32} className="text-slate-300 dark:text-slate-600 mb-3" />
+                        <HelpCircle size={32} className="text-slate-305 dark:text-slate-600 mb-3" />
                         <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Awaiting search initiation</p>
                         <p className="text-xs text-slate-400 dark:text-slate-500 font-medium max-w-sm mt-1">
                           Adjust metadata search parameters above and click Search to query online catalog providers.
@@ -882,8 +879,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                       </div>
                     )}
 
-                    {/* Side-by-Side Confirmation Step */}
-                    {selectedCandidate && (
+                               {selectedCandidate && (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                           <h4 className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Confirm Match Association</h4>
@@ -895,7 +891,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                             Back to Candidates
                           </button>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl relative overflow-hidden">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-4 rounded-md relative overflow-hidden">
                           {confirming && (
                             <div className="absolute inset-0 bg-white/70 dark:bg-slate-900/70 backdrop-blur-[1px] flex flex-col items-center justify-center z-10 animate-fade-in">
                               {matchSuccess ? (
@@ -915,8 +911,8 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
 
                           <div className="space-y-2.5">
                             <p className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block">Proposed Metadata</p>
-                            <div className="flex gap-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-indigo-100 dark:border-indigo-950/60 shadow-sm">
-                              <div className="w-12 h-18 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-lg overflow-hidden shrink-0 flex items-center justify-center text-slate-300 dark:text-slate-700">
+                            <div className="flex gap-3 bg-white dark:bg-slate-900 p-3 rounded-md border border-indigo-100 dark:border-indigo-955/60">
+                              <div className="w-12 h-18 bg-slate-50 dark:bg-slate-955 border border-slate-100 dark:border-slate-800 rounded-md overflow-hidden shrink-0 flex items-center justify-center text-slate-300 dark:text-slate-700">
                                 {selectedCandidate.coverUrl ? (
                                   <img
                                     src={selectedCandidate.coverUrl}
@@ -944,7 +940,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                           {selectedCandidate.description && (
                             <div className="space-y-2.5">
                               <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Description Preview</p>
-                              <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-h-[110px] overflow-y-auto shadow-sm">
+                              <div className="bg-white dark:bg-slate-900 p-3 rounded-md border border-slate-100 dark:border-slate-800 text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-h-[110px] overflow-y-auto">
                                 {selectedCandidate.description}
                               </div>
                             </div>
@@ -956,7 +952,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                             type="button"
                             onClick={() => setSelectedCandidate(null)}
                             disabled={confirming}
-                            className="px-4 py-2 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-[10px] font-bold transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                            className="px-4 py-2 border border-slate-200 dark:border-slate-805 text-slate-650 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md text-[10px] font-bold transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                           >
                             CANCEL
                           </button>
@@ -964,7 +960,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                             type="button"
                             onClick={handleConfirmMatch}
                             disabled={confirming}
-                            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-bold transition-all active:scale-95 shadow-md shadow-indigo-100 dark:shadow-none flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-[10px] font-bold transition-all active:scale-95 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                           >
                             <CheckCircle2 size={12} />
                             CONFIRM MATCH & SYNC
@@ -990,8 +986,8 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                     <div className="flex-grow flex flex-col min-h-0">
                       {lookupLoading ? (
                         <div className="flex-grow flex flex-col items-center justify-center py-12 text-center">
-                          <RefreshCw size={28} className="animate-spin text-indigo-600 dark:text-indigo-400 mb-3" />
-                          <p className="text-[10px] font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-widest">
+                          <RefreshCw size={28} className="animate-spin text-indigo-650 dark:text-indigo-400 mb-3" />
+                          <p className="text-[10px] font-black text-indigo-900 dark:text-indigo-305 uppercase tracking-widest">
                             Connecting to Audnexus...
                           </p>
                           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-medium">
@@ -1001,7 +997,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                       ) : lookupResults ? (
                         // Results Preview
                         <div className="space-y-4 flex-grow flex flex-col min-h-0">
-                          <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/30 text-emerald-800 dark:text-emerald-400 p-4 rounded-2xl flex items-start gap-2.5 text-xs font-medium shrink-0 animate-fade-in">
+                          <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/30 text-emerald-800 dark:text-emerald-400 p-4 rounded-md flex items-start gap-2.5 text-xs font-medium shrink-0 animate-fade-in">
                             <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
                             <div>
                               <p className="font-bold">Fetched {lookupResults.length} chapters successfully!</p>
@@ -1010,11 +1006,11 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                           </div>
 
                           {/* Preview List */}
-                          <div className="space-y-2 overflow-y-auto pr-1 flex-grow border border-slate-100 dark:border-slate-800 p-3 rounded-2xl bg-slate-50/30 dark:bg-slate-950/20 max-h-[220px]">
+                          <div className="space-y-2 overflow-y-auto pr-1 flex-grow border border-slate-100 dark:border-slate-800 p-3 rounded-md bg-slate-50/30 dark:bg-slate-950/20 max-h-[220px]">
                             {lookupResults.map((chapter: any, index: number) => {
                               const chapDuration = (chapter.end - chapter.start);
                               return (
-                                <div key={index} className="flex items-center justify-between text-[11px] p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                                <div key={index} className="flex items-center justify-between text-[11px] p-2.5 bg-white dark:bg-slate-900 rounded-md border border-slate-100 dark:border-slate-800">
                                   <div className="flex items-center gap-2 min-w-0">
                                     <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 font-mono w-5">
                                       {(index + 1).toString().padStart(2, "0")}
@@ -1022,7 +1018,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                                     <p className="font-bold text-slate-700 dark:text-slate-300 truncate">{chapter.title}</p>
                                   </div>
                                   <div className="flex items-center gap-4 text-[9px] font-bold text-slate-400 dark:text-slate-500 font-mono shrink-0">
-                                    <span className="bg-slate-50 dark:bg-slate-950 px-1.5 py-0.5 rounded text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-800">
+                                    <span className="bg-slate-50 dark:bg-slate-950 px-1.5 py-0.5 rounded text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-800 font-mono">
                                       {formatDuration(chapter.start)} - {formatDuration(chapter.end)}
                                     </span>
                                     <span className="text-slate-500 dark:text-slate-400 font-semibold w-12 text-right">{formatDuration(chapDuration)}</span>
@@ -1033,7 +1029,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                           </div>
 
                           {lookupError && (
-                            <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-rose-800 dark:text-rose-400 p-3 rounded-xl flex items-start gap-2 text-[11px] font-semibold shrink-0">
+                            <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-rose-800 dark:text-rose-400 p-3 rounded-md flex items-start gap-2 text-[11px] font-semibold shrink-0">
                               <AlertCircle size={14} className="text-rose-500 shrink-0 mt-0.5" />
                               <div>{lookupError}</div>
                             </div>
@@ -1052,7 +1048,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                                   setIsLookingUp(false);
                                 }
                               }}
-                              className="px-4 py-2 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer"
+                              className="px-4 py-2 border border-slate-200 dark:border-slate-800 text-slate-655 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-55 dark:hover:bg-slate-800 rounded-md text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer"
                             >
                               Back
                             </button>
@@ -1060,7 +1056,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                               type="button"
                               onClick={handleSaveChapters}
                               disabled={applyingChapters}
-                              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 shadow-md shadow-indigo-100 dark:shadow-none flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                             >
                               {applyingChapters ? (
                                 <>
@@ -1078,17 +1074,17 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                         </div>
                       ) : (
                         // Form / Input step
-                        <div className="space-y-4 p-4 border border-indigo-100/50 dark:border-indigo-950/40 bg-indigo-50/10 dark:bg-indigo-950/10 rounded-2xl flex-grow flex flex-col justify-center">
+                        <div className="space-y-4 p-4 border border-indigo-100/50 dark:border-indigo-950/40 bg-indigo-50/10 dark:bg-indigo-950/10 rounded-md flex-grow flex flex-col justify-center">
                           <div className="text-center max-w-md mx-auto space-y-2">
                             <Sparkles className="mx-auto text-indigo-500" size={24} />
-                            <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">Chapter Lookup via Audnexus</h4>
+                            <h4 className="text-xs font-black text-slate-805 dark:text-slate-200 uppercase tracking-wider">Chapter Lookup via Audnexus</h4>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
                               Audnexus indexes chapter data from Audible. Enter the book's Audible ASIN and select your regional storefront to find chapters.
                             </p>
                           </div>
 
                           {lookupError && (
-                            <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-rose-800 dark:text-rose-400 p-3 rounded-xl flex items-start gap-2 text-[11px] font-semibold max-w-md mx-auto w-full">
+                            <div className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900/30 text-rose-800 dark:text-rose-400 p-3 rounded-md flex items-start gap-2 text-[11px] font-semibold max-w-md mx-auto w-full">
                               <AlertCircle size={14} className="text-rose-500 shrink-0 mt-0.5" />
                               <div>{lookupError}</div>
                             </div>
@@ -1103,9 +1099,9 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                                     key={r.value}
                                     type="button"
                                     onClick={() => setLookupRegion(r.value)}
-                                    className={`py-1.5 rounded-lg text-[10px] font-bold transition-all border cursor-pointer ${
+                                    className={`py-1.5 rounded-md text-[10px] font-bold transition-all border cursor-pointer ${
                                       lookupRegion === r.value
-                                        ? "bg-indigo-600 dark:bg-indigo-600 text-white border-indigo-600 dark:border-indigo-600 shadow-sm"
+                                        ? "bg-indigo-600 dark:bg-indigo-600 text-white border-indigo-600 dark:border-indigo-600"
                                         : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-700 dark:hover:text-indigo-400"
                                     }`}
                                   >
@@ -1129,18 +1125,18 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                                     if (e.key === "Enter" && lookupAsin) performChaptersLookup(lookupAsin);
                                   }}
                                   placeholder="e.g. B08G9PRS1K"
-                                  className="flex-grow bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/30 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none transition-all"
+                                  className="flex-grow bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md px-3.5 py-1.5 text-xs font-semibold focus:ring-1 focus:ring-indigo-100 dark:focus:ring-indigo-950/30 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none transition-all"
                                 />
                                 <button
                                   type="button"
                                   onClick={() => performChaptersLookup(lookupAsin)}
                                   disabled={!lookupAsin}
-                                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-wider px-5 py-2 rounded-xl transition-all active:scale-95 shadow-md shadow-indigo-100 dark:shadow-none disabled:opacity-50 cursor-pointer"
+                                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-wider px-5 py-2 rounded-md transition-all disabled:opacity-50 cursor-pointer"
                                 >
                                   Lookup
                                 </button>
                               </div>
-                              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium leading-relaxed">
+                              <p className="text-[10px] text-slate-400 dark:text-slate-550 font-medium leading-relaxed">
                                 Find the ASIN in the Audible product URL: <span className="font-bold text-slate-500 dark:text-slate-400 font-mono">audible.com/pd/Title/<span className="text-indigo-500 dark:text-indigo-400">B08G9PRS1K</span></span>.
                               </p>
                             </div>
@@ -1182,7 +1178,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                                     performChaptersLookup(metadata.asin);
                                   }
                                 }}
-                                className="ml-2 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded-lg transition-all flex items-center gap-1 font-bold text-[9px] shrink-0 cursor-pointer"
+                                className="ml-2 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded-md transition-all flex items-center gap-1 font-bold text-[9px] shrink-0 cursor-pointer"
                               >
                                 <Sparkles size={9} />
                                 Lookup
@@ -1196,7 +1192,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                               return (
                                 <div 
                                   key={chapter.id || index}
-                                  className="group hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-transparent hover:border-slate-100 dark:hover:border-slate-800/80 p-2.5 rounded-xl transition-all flex items-center justify-between text-xs relative"
+                                  className="group hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-transparent hover:border-slate-100 dark:hover:border-slate-800/80 p-2.5 rounded-md transition-all flex items-center justify-between text-xs relative"
                                 >
                                   {/* Timeline indicator bullet */}
                                   <div className="absolute w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700 group-hover:bg-indigo-600 dark:group-hover:bg-indigo-400 border border-white dark:border-slate-900 left-[-21.5px] top-1/2 -translate-y-1/2 transition-colors" />
@@ -1226,7 +1222,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                           </div>
                         </div>
                       ) : (
-                        <div className="flex-grow flex flex-col items-center justify-center py-12 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl bg-slate-50/50 dark:bg-slate-950/20 animate-fade-in">
+                        <div className="flex-grow flex flex-col items-center justify-center py-12 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-md bg-slate-50/50 dark:bg-slate-950/20 animate-fade-in">
                           <Clock size={32} className="text-slate-300 dark:text-slate-650 mb-3" />
                           <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                             No chapters cataloged
@@ -1244,7 +1240,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
                                 performChaptersLookup(metadata.asin);
                               }
                             }}
-                            className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-wider px-5 py-2.5 rounded-xl transition-all active:scale-95 shadow-md shadow-indigo-100 dark:shadow-none flex items-center gap-1.5 cursor-pointer"
+                            className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-wider px-5 py-2.5 rounded-md transition-all flex items-center gap-1.5 cursor-pointer"
                           >
                             <Sparkles size={12} />
                             Lookup Chapters from Provider
@@ -1260,7 +1256,7 @@ export function BookDetailsModal({ book, initialTab = "details", onClose, onMatc
 
           {/* Details tab network error display */}
           {detailsError && activeTab !== "match" && activeTab !== "statistics" && (
-            <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-rose-800 dark:text-rose-400 p-4 rounded-2xl flex items-start gap-2.5 text-xs font-semibold mt-4">
+            <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-rose-800 dark:text-rose-400 p-4 rounded-md flex items-start gap-2.5 text-xs font-semibold mt-4">
               <AlertCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
               <div>{detailsError}</div>
             </div>

@@ -81,11 +81,7 @@ export function DashboardView({
 
   const getGenreStyle = (genre: string) => {
     const styles = [
-      { bg: "from-pink-500 to-rose-500", text: "text-rose-600", lightBg: "bg-rose-50 border-rose-100", barBg: "bg-rose-500" },
-      { bg: "from-amber-500 to-orange-500", text: "text-orange-600", lightBg: "bg-orange-50 border-orange-100", barBg: "bg-orange-500" },
-      { bg: "from-emerald-500 to-teal-500", text: "text-emerald-600", lightBg: "bg-emerald-50 border-emerald-100", barBg: "bg-emerald-500" },
-      { bg: "from-blue-500 to-indigo-500", text: "text-indigo-600", lightBg: "bg-indigo-50 border-indigo-100", barBg: "bg-indigo-500" },
-      { bg: "from-violet-500 to-purple-500", text: "text-purple-600", lightBg: "bg-purple-50 border-purple-100", barBg: "bg-purple-500" },
+      { bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-700 dark:text-slate-350", lightBg: "bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800", barBg: "bg-indigo-650 dark:bg-indigo-500" },
     ];
     let hash = 0;
     for (let i = 0; i < genre.length; i++) {
@@ -167,7 +163,7 @@ export function DashboardView({
       {/* Live Playback and Recent Activity Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className={cn(
-          "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col transition-all duration-300",
+          "bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col transition-all duration-300",
           filteredActiveSessions.length <= 1 
             ? "h-auto min-h-[180px] lg:h-[400px]" 
             : "h-[400px]"
@@ -180,7 +176,7 @@ export function DashboardView({
               <p className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-semibold mt-0.5">Direct stream activity</p>
             </div>
             {activeSessions.length > 5 && (
-              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1 rounded-xl w-full sm:w-44 focus-within:ring-2 focus-within:ring-indigo-100/50 dark:focus-within:ring-indigo-950/50 focus-within:border-indigo-400 dark:focus-within:border-indigo-500 transition-all shrink-0">
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1 rounded-md w-full sm:w-44 focus-within:ring-2 focus-within:ring-indigo-100/50 dark:focus-within:ring-indigo-950/50 focus-within:border-indigo-400 dark:focus-within:border-indigo-500 transition-all shrink-0">
                 <Search size={10} className="text-slate-400" />
                 <input 
                   type="text" 
@@ -195,12 +191,12 @@ export function DashboardView({
           
           <div className="flex-grow overflow-y-auto no-scrollbar flex flex-col gap-3 pr-1">
             {filteredActiveSessions.map((session) => (
-              <div key={session.id} className="p-3 rounded-xl border border-indigo-100 dark:border-indigo-950/40 bg-indigo-50/40 dark:bg-indigo-950/20 flex flex-col gap-2 relative overflow-hidden group shrink-0">
-                <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:scale-125 transition-transform">
+              <div key={session.id} className="p-3 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col gap-2 relative overflow-hidden group shrink-0">
+                <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:scale-110 transition-transform">
                   <Activity size={32} className="text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 overflow-hidden">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 overflow-hidden">
                     <UserIcon size={14} />
                   </div>
                   <div>
@@ -246,7 +242,7 @@ export function DashboardView({
         </div>
 
         <div className={cn(
-          "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col transition-all duration-300",
+          "bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col transition-all duration-300",
           (dashboardLoading || filteredRecentActivityGrouped.length > 1)
             ? "h-[400px]" 
             : "h-auto min-h-[180px] lg:h-[400px]"
@@ -259,7 +255,7 @@ export function DashboardView({
               <p className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-semibold mt-0.5">User engagement &amp; book summaries</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md">
                 {([{ label: 'By User', value: 'user' }, { label: 'By Session', value: 'session' }] as const).map((opt) => (
                   <button
                     key={opt.value}
@@ -274,7 +270,7 @@ export function DashboardView({
                   </button>
                 ))}
               </div>
-              <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md">
                 {([{ label: '24H', value: '1' }, { label: '7D', value: '7' }] as const).map((opt) => (
                   <button
                     key={opt.value}
@@ -290,7 +286,7 @@ export function DashboardView({
                 ))}
               </div>
               {last7DaysActivitiesGrouped.length > 5 && (
-                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1 rounded-xl w-full sm:w-44 focus-within:ring-2 focus-within:ring-indigo-100/50 dark:focus-within:ring-indigo-950/50 focus-within:border-indigo-400 dark:focus-within:border-indigo-500 transition-all">
+                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1 rounded-md w-full sm:w-44 focus-within:ring-2 focus-within:ring-indigo-100/50 dark:focus-within:ring-indigo-950/50 focus-within:border-indigo-400 dark:focus-within:border-indigo-500 transition-all">
                   <Search size={10} className="text-slate-400" />
                   <input 
                     type="text" 
@@ -307,19 +303,19 @@ export function DashboardView({
           <div className="flex-grow overflow-y-auto no-scrollbar flex flex-col gap-3 pr-1">
             {dashboardLoading ? (
               Array.from({ length: 3 }).map((_, idx) => (
-                <div key={idx} className="flex flex-col gap-2 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/10 animate-pulse select-none">
+                <div key={idx} className="flex flex-col gap-2 p-1.5 rounded-md border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/10 animate-pulse select-none">
                   {/* Pulsing User identity row */}
-                  <div className="flex items-center justify-between px-2 py-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                  <div className="flex items-center justify-between px-2 py-1 bg-white dark:bg-slate-900 rounded-md">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-800 shrink-0" />
                       <div className="w-16 h-3 bg-slate-200 dark:bg-slate-800 rounded shrink-0" />
                     </div>
-                    <div className="w-12 h-4 bg-slate-100 dark:bg-slate-800 rounded-full" />
+                    <div className="w-12 h-4 bg-slate-100 dark:bg-slate-800 rounded-md" />
                   </div>
                   {/* Pulsing sub-book items */}
                   <div className="flex flex-col gap-1.5 px-1 pb-1">
                     {Array.from({ length: 2 }).map((_, bIdx) => (
-                      <div key={bIdx} className="flex items-center gap-3 p-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                      <div key={bIdx} className="flex items-center gap-3 p-1.5 rounded-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
                         <div className="w-7 h-7 bg-slate-200 dark:bg-slate-800 rounded shrink-0" />
                         <div className="flex-grow">
                           <div className="w-24 h-3 bg-slate-200 dark:bg-slate-800 rounded mb-1" />
@@ -338,11 +334,11 @@ export function DashboardView({
                     {filteredRecentActivityGrouped.map((user) => {
                       const isCollapsed = expandedUsers[user.userId] === false;
                       return (
-                        <div key={user.userId} className="flex flex-col gap-2 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/10">
+                        <div key={user.userId} className="flex flex-col gap-2 p-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/10">
                           {/* User identity row */}
                           <div 
                             onClick={() => toggleUserExpanded(user.userId)}
-                            className="flex items-center justify-between px-2 py-1 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/80 cursor-pointer rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm transition-all select-none"
+                            className="flex items-center justify-between px-2 py-1 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/80 cursor-pointer rounded-md transition-all select-none"
                           >
                             <div className="flex items-center gap-2">
                               {isCollapsed ? (
@@ -350,15 +346,15 @@ export function DashboardView({
                               ) : (
                                 <ChevronDown size={12} className="text-slate-400 shrink-0" />
                               )}
-                              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 text-white flex items-center justify-center text-[10px] font-black shadow-sm uppercase shrink-0">
+                              <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center text-[10px] font-bold border border-slate-200 dark:border-slate-700 uppercase shrink-0">
                                 {user.username.charAt(0)}
                               </div>
                               <span className="text-[11px] font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">{user.username}</span>
-                              <span className="text-[9px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200/50 dark:border-slate-700 shrink-0">
+                              <span className="text-[9px] font-bold text-slate-600 dark:text-slate-305 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/50 dark:border-slate-750 shrink-0">
                                 {user.uniqueBooks.length} active {user.uniqueBooks.length === 1 ? 'book' : 'books'}
                               </span>
                             </div>
-                            <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full border border-indigo-100/50 dark:border-indigo-900/50">
+                            <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-md border border-indigo-100/50 dark:border-indigo-900/50">
                               {formatTotalTime(user.totalTime)}
                             </span>
                           </div>
@@ -369,7 +365,7 @@ export function DashboardView({
                               {user.uniqueBooks.map(({ title, lastSession }) => {
                                 const { itemId, progressPercent } = getSessionBookInfo(lastSession);
                                 return (
-                                  <div key={lastSession.id} className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all group/book">
+                                  <div key={lastSession.id} className="flex items-center gap-3 p-1.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all group/book">
                                     <div className="w-8 h-8 aspect-square rounded overflow-hidden shadow-sm shrink-0 border border-slate-200/50 dark:border-slate-800 group-hover/book:scale-105 transition-transform relative">
                                       {itemId ? (
                                         <CoverImage 
@@ -378,7 +374,7 @@ export function DashboardView({
                                           className="w-full h-full object-cover animate-fade-in" 
                                         />
                                       ) : (
-                                        <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500">
+                                        <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-505">
                                           <BookOpen size={14} />
                                         </div>
                                       )}
@@ -391,9 +387,9 @@ export function DashboardView({
                                             <span className="text-[9px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 rounded shrink-0">
                                               {progressPercent}%
                                             </span>
-                                            <div className="w-8 h-0.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shrink-0">
+                                            <div className="w-8 h-1 bg-slate-100 dark:bg-slate-800 rounded-md overflow-hidden shrink-0">
                                               <div 
-                                                className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full" 
+                                                className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-md" 
                                                 style={{ width: `${progressPercent}%` }}
                                               />
                                             </div>
@@ -405,7 +401,7 @@ export function DashboardView({
                                       </div>
                                     </div>
                                     <div className="text-right shrink-0">
-                                      <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-tight">{formatDistanceToNow(lastSession.startedAt).replace('about ', '')} ago</p>
+                                      <p className="text-[9px] text-slate-400 dark:text-slate-505 uppercase font-bold tracking-tight">{formatDistanceToNow(lastSession.startedAt).replace('about ', '')} ago</p>
                                     </div>
                                   </div>
                                 );
@@ -417,7 +413,7 @@ export function DashboardView({
                     })}
 
                     {filteredRecentActivityGrouped.length === 0 && (
-                      <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-2 py-12 flex-grow">
+                      <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-550 gap-2 py-12 flex-grow">
                         <div className="w-10 h-10 bg-slate-50 dark:bg-slate-800/40 rounded-full flex items-center justify-center opacity-60">
                           <Activity size={18} className="text-slate-400" />
                         </div>
@@ -440,7 +436,7 @@ export function DashboardView({
                       const { itemId, progressPercent } = getSessionBookInfo(session);
                       const title = session.displayTitle || session.mediaItemTitle || "Unknown";
                       return (
-                        <div key={session.id} className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-800 group/book">
+                        <div key={session.id} className="flex items-center gap-3 p-1.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-800 group/book">
                           <div className="w-8 h-8 aspect-square rounded overflow-hidden shadow-sm shrink-0 border border-slate-200/50 dark:border-slate-800 group-hover/book:scale-105 transition-transform relative">
                             {itemId ? (
                               <CoverImage 
@@ -449,7 +445,7 @@ export function DashboardView({
                                 className="w-full h-full object-cover animate-fade-in" 
                               />
                             ) : (
-                              <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500">
+                              <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-505">
                                 <BookOpen size={14} />
                               </div>
                             )}
@@ -466,9 +462,9 @@ export function DashboardView({
                                   <span className="text-[9px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 rounded shrink-0">
                                     {progressPercent}%
                                   </span>
-                                  <div className="w-8 h-0.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shrink-0">
+                                  <div className="w-8 h-1 bg-slate-100 dark:bg-slate-800 rounded-md overflow-hidden shrink-0">
                                     <div 
-                                      className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full" 
+                                      className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-md" 
                                       style={{ width: `${progressPercent}%` }}
                                     />
                                   </div>
@@ -480,7 +476,7 @@ export function DashboardView({
                             </div>
                           </div>
                           <div className="text-right shrink-0">
-                            <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-tight">
+                            <p className="text-[9px] text-slate-400 dark:text-slate-550 uppercase font-bold tracking-tight">
                               {formatDistanceToNow(session.startedAt).replace('about ', '')} ago
                             </p>
                           </div>
@@ -489,7 +485,7 @@ export function DashboardView({
                     })}
 
                     {filteredRecentSessions.length === 0 && (
-                      <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-2 py-12 flex-grow">
+                      <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-550 gap-2 py-12 flex-grow">
                         <div className="w-10 h-10 bg-slate-50 dark:bg-slate-800/40 rounded-full flex items-center justify-center opacity-60">
                           <Activity size={18} className="text-slate-400" />
                         </div>
@@ -514,7 +510,7 @@ export function DashboardView({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
         {/* Listening History (30 Days) */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col justify-between h-[360px]">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col justify-between h-[360px]">
           <div className="flex items-center justify-between mb-4 px-2 shrink-0">
             <div>
               <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight">30 Days Listening History</h3>
@@ -523,7 +519,7 @@ export function DashboardView({
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md">
                 <button 
                   onClick={() => setChartType('line')}
                   className={`px-2 py-1 text-[9px] font-bold uppercase rounded-md transition-all cursor-pointer ${chartType === 'line' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'}`}
@@ -540,7 +536,7 @@ export function DashboardView({
             </div>
           </div>
           {dashboardLoading ? (
-            <div className="h-[240px] w-full flex flex-col justify-end gap-4 p-4 bg-slate-50/50 dark:bg-slate-800/10 rounded-xl border border-slate-100 dark:border-slate-800 animate-pulse relative overflow-hidden select-none">
+            <div className="h-[240px] w-full flex flex-col justify-end gap-4 p-4 bg-slate-50/50 dark:bg-slate-800/10 rounded-md border border-slate-100 dark:border-slate-800 animate-pulse relative overflow-hidden select-none">
               <div className="absolute inset-0 flex items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-[1px]">
                 <div className="flex flex-col items-center gap-2">
                   <Activity size={24} className="text-indigo-500 dark:text-indigo-400 animate-spin" style={{ animationDuration: '3s' }} />
@@ -552,43 +548,43 @@ export function DashboardView({
               <ResponsiveContainer width="100%" height="100%">
                 {chartType === 'line' ? (
                   <LineChart data={lineChartData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#334155" : "#f1f5f9"} />
-                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: isDark ? '#64748b' : '#94a3b8', fontWeight: 600 }} dy={5} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: isDark ? '#64748b' : '#94a3b8', fontWeight: 600 }} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-default)" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 600 }} dy={5} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 600 }} />
                     <Tooltip 
-                      cursor={{ stroke: isDark ? '#334155' : '#e2e8f0', strokeWidth: 1 }}
+                      cursor={{ stroke: 'var(--border-default)', strokeWidth: 1 }}
                       contentStyle={{ 
-                        backgroundColor: isDark ? '#1e293b' : '#fff', 
-                        borderRadius: '8px', 
-                        border: isDark ? '1px solid #334155' : 'none', 
-                        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                        backgroundColor: isDark ? '#161b22' : '#ffffff', 
+                        borderRadius: '6px', 
+                        border: '1px solid var(--border-default)', 
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
                         fontSize: '10px',
                         fontWeight: '600',
-                        color: isDark ? '#f8fafc' : '#0f172a'
+                        color: 'var(--text-primary)'
                       }}
-                      itemStyle={{ color: isDark ? '#f8fafc' : '#0f172a' }}
+                      itemStyle={{ color: 'var(--text-primary)' }}
                     />
-                    <Line type="monotone" dataKey="hours" stroke="#6366f1" strokeWidth={2} dot={{ r: 3, fill: '#6366f1', strokeWidth: 1.5, stroke: isDark ? '#1e293b' : '#fff' }} activeDot={{ r: 5, strokeWidth: 0 }} />
+                    <Line type="monotone" dataKey="hours" stroke="var(--indigo-600)" strokeWidth={2} dot={{ r: 3, fill: 'var(--indigo-600)', strokeWidth: 1.5, stroke: isDark ? '#161b22' : '#ffffff' }} activeDot={{ r: 5, strokeWidth: 0 }} />
                   </LineChart>
                 ) : (
                   <BarChart data={lineChartData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#334155" : "#f1f5f9"} />
-                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: isDark ? '#64748b' : '#94a3b8', fontWeight: 600 }} dy={5} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: isDark ? '#64748b' : '#94a3b8', fontWeight: 600 }} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-default)" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 600 }} dy={5} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 600 }} />
                     <Tooltip 
-                      cursor={{ fill: isDark ? 'rgba(30, 41, 59, 0.4)' : 'rgba(241, 245, 249, 0.6)' }}
+                      cursor={{ fill: isDark ? 'rgba(30, 41, 59, 0.2)' : 'rgba(241, 245, 249, 0.4)' }}
                       contentStyle={{ 
-                        backgroundColor: isDark ? '#1e293b' : '#fff', 
-                        borderRadius: '8px', 
-                        border: isDark ? '1px solid #334155' : 'none', 
-                        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                        backgroundColor: isDark ? '#161b22' : '#ffffff', 
+                        borderRadius: '6px', 
+                        border: '1px solid var(--border-default)', 
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
                         fontSize: '10px',
                         fontWeight: '600',
-                        color: isDark ? '#f8fafc' : '#0f172a'
+                        color: 'var(--text-primary)'
                       }}
-                      itemStyle={{ color: isDark ? '#f8fafc' : '#0f172a' }}
+                      itemStyle={{ color: 'var(--text-primary)' }}
                     />
-                    <Bar dataKey="hours" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="hours" fill="var(--indigo-600)" radius={[2, 2, 0, 0]} />
                   </BarChart>
                 )}
               </ResponsiveContainer>
@@ -597,7 +593,7 @@ export function DashboardView({
         </div>
 
         {/* Recent Additions Card */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col h-[360px]">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col h-[360px]">
           <div className="flex items-center justify-between mb-4 px-2 shrink-0">
             <div>
               <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight">Recent Additions</h3>

@@ -381,23 +381,19 @@ export default function App() {
     if (!Capacitor.isNativePlatform()) {
       return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6 font-sans relative overflow-hidden">
-          {/* Subtle gradient background blur */}
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-[100px]" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-600/5 rounded-full blur-[100px]" />
-
           {/* Theme switcher top right */}
           <div className="absolute top-6 right-6">
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all shadow-sm cursor-pointer"
+              className="p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all shadow-sm cursor-pointer"
               title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
-              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+              {darkMode ? <Sun size={16} /> : <Moon size={16} />}
             </button>
           </div>
 
-          <div className="max-w-xl w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-8 sm:p-12 text-center relative z-10">
-            <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+          <div className="max-w-xl w-full bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-8 sm:p-12 text-center relative z-10">
+            <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-md flex items-center justify-center mx-auto mb-6">
               <Activity size={32} className="animate-pulse" />
             </div>
             
@@ -410,7 +406,7 @@ export default function App() {
               Please configure the backend by setting the environment variables.
             </p>
 
-            <div className="bg-slate-100 dark:bg-slate-950 rounded-2xl p-6 mb-8 text-left border border-slate-200/50 dark:border-slate-800/50 relative group">
+            <div className="bg-slate-100 dark:bg-slate-950 rounded-md p-6 mb-8 text-left border border-slate-200/50 dark:border-slate-800/50 relative group">
               <div className="absolute top-3 right-3 text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
                 .env config
               </div>
@@ -433,7 +429,7 @@ export default function App() {
                   setLoading(false);
                 }
               }}
-              className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold uppercase tracking-widest transition-all shadow-lg shadow-indigo-100 dark:shadow-none cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-bold uppercase tracking-widest transition-all cursor-pointer"
             >
               Check Server Configuration
             </button>
@@ -457,7 +453,7 @@ export default function App() {
           <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm font-medium">Hold on, we're fetching your audiobooks data.</p>
           
           {syncProgress && (
-            <div className="mt-8 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm text-left animate-fade-in">
+            <div className="mt-8 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-md p-5 shadow-sm text-left animate-fade-in text-slate-900 dark:text-slate-100">
               <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2.5">
                 <span className="truncate pr-4">
                   {syncProgress.type === 'books' 
@@ -470,7 +466,7 @@ export default function App() {
               {/* Progress track */}
               <div className="w-full bg-slate-100 dark:bg-slate-950 rounded-full h-2 overflow-hidden mb-3">
                 <div 
-                  className="bg-indigo-650 dark:bg-indigo-500 h-full rounded-full transition-all duration-300 ease-out" 
+                  className="bg-indigo-600 dark:bg-indigo-500 h-full rounded-full transition-all duration-300 ease-out" 
                   style={{ width: `${syncProgress.percentage}%` }}
                 />
               </div>
@@ -493,15 +489,15 @@ export default function App() {
   if (error) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-6 font-sans">
-        <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-10 text-center">
-          <div className="w-20 h-20 bg-red-50 dark:bg-red-950/20 text-red-500 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-6">
-            <AlertCircle size={40} />
+        <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-10 text-center">
+          <div className="w-16 h-16 bg-red-50 dark:bg-red-950/20 text-red-500 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle size={32} />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4">Connection Blocked</h2>
-          <p className="text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Connection Blocked</h2>
+          <p className="text-xs text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
             {error}
           </p>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             {Capacitor.isNativePlatform() && (
               <button 
                 onClick={async () => {
@@ -509,14 +505,14 @@ export default function App() {
                   setIsConfigured(false);
                   setError(null);
                 }}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest transition-colors shadow-md cursor-pointer animate-fade-in"
+                className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-[10px] font-bold uppercase tracking-widest transition-colors cursor-pointer animate-fade-in"
               >
                 Reconfigure Connection
               </button>
             )}
             <button 
               onClick={() => fetchData(true)}
-              className="w-full py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+              className="w-full py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             >
               Retry Connection
             </button>
@@ -529,18 +525,18 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex selection:bg-indigo-100 selection:text-indigo-900 dark:selection:bg-indigo-950/40 dark:selection:text-indigo-200">
       {/* Sidebar - Desktop Only */}
-      <aside className="hidden lg:flex h-screen border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col sticky top-0 z-50 shrink-0 w-[240px]">
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-10">
+      <aside className="hidden lg:flex h-screen border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 flex-col sticky top-0 z-50 shrink-0 w-[220px]">
+        <div className="p-4 flex flex-col h-full">
+          <div className="flex items-center gap-2 px-2 py-3 mb-6">
             <motion.img 
               src={darkMode ? logoDark : logoLight} 
               alt="ShelfLife Logo" 
-              className="w-10 h-10 object-contain cursor-pointer"
-              whileHover={{ scale: 1.08, rotate: 3 }}
+              className="w-8 h-8 object-contain cursor-pointer"
+              whileHover={{ scale: 1.05, rotate: 3 }}
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             />
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Shelf<span className="text-indigo-600 dark:text-indigo-400">Life</span></h1>
+            <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">Shelf<span className="text-indigo-600 dark:text-indigo-400">Life</span></h1>
           </div>
           
           <nav className="space-y-1">
@@ -549,10 +545,10 @@ export default function App() {
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
                 className={cn(
-                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold uppercase tracking-tight transition-all cursor-pointer",
+                  "w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs font-semibold transition-all cursor-pointer",
                   activeTab === item.id 
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100 dark:shadow-none' 
-                    : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100'
+                    ? 'bg-slate-200/60 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-l-2 border-indigo-600 dark:border-indigo-500 rounded-l-none' 
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/40 hover:text-slate-900 dark:hover:text-slate-100'
                 )}
               >
                 <item.icon size={16} />
@@ -695,26 +691,26 @@ export default function App() {
           </AnimatePresence>
         </section>
         {/* Bottom Navigation - Mobile Only */}
-        <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm bg-indigo-100/80 dark:bg-indigo-900/50 backdrop-blur-2xl border border-white/80 dark:border-indigo-950/80 rounded-3xl shadow-lg shadow-indigo-950/5 dark:shadow-2xl dark:shadow-black/40 z-50 p-2 flex items-center justify-around">
+        <nav className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm bg-slate-50/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 rounded-xl shadow-md z-50 p-1 flex items-center justify-around">
           {NAV_ITEMS.map(item => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className={cn(
-                "flex flex-col items-center gap-1 p-2 min-w-[64px] rounded-xl transition-all relative cursor-pointer",
+                "flex flex-col items-center gap-0.5 py-1.5 px-2 min-w-[56px] rounded-lg transition-all relative cursor-pointer",
                 activeTab === item.id 
-                  ? 'text-indigo-950 dark:text-white font-black' 
-                  : 'text-indigo-800/80 dark:text-indigo-200/85'
+                  ? 'text-indigo-600 dark:text-indigo-400 font-bold' 
+                  : 'text-slate-500 dark:text-slate-400'
               )}
             >
               {activeTab === item.id && (
                 <motion.div 
                   layoutId="bottomNavTab"
-                  className="absolute inset-0 bg-white/95 dark:bg-indigo-950/70 rounded-xl -z-10 shadow-sm"
+                  className="absolute inset-0 bg-slate-200/60 dark:bg-slate-800 rounded-lg -z-10"
                 />
               )}
-              <item.icon size={20} />
-              <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
+              <item.icon size={16} />
+              <span className="text-[9px] font-bold uppercase tracking-tighter">{item.label}</span>
             </button>
           ))}
         </nav>

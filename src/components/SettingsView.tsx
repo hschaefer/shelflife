@@ -103,7 +103,7 @@ export function SettingsView({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Connection Profile Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between min-h-[300px]">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between min-h-[300px]">
           <div>
             <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
               <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Node Connection</h4>
@@ -133,7 +133,7 @@ export function SettingsView({
                       Active
                     </div>
                   </div>
-                  <div className="space-y-1.5 mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800 rounded-xl p-3">
+                  <div className="space-y-1.5 mt-1 bg-slate-50 dark:bg-slate-955 border border-slate-200/60 dark:border-slate-800 rounded-md p-3">
                     {Object.entries(currentExtraHeaders).map(([key]) => (
                       <div key={key} className="flex items-center justify-between text-[11px] font-medium font-sans">
                         <span className="font-semibold text-slate-600 dark:text-slate-400 font-mono break-all pr-2">{key}</span>
@@ -149,7 +149,7 @@ export function SettingsView({
           {onDisconnect && isDirect && (
             <button 
               onClick={onDisconnect}
-              className="w-full py-2.5 bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-500 border border-rose-100 dark:border-rose-950/30 hover:bg-rose-100/70 dark:hover:bg-rose-900/20 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-sm mt-4 cursor-pointer active:scale-98"
+              className="w-full py-2 bg-rose-50 dark:bg-rose-955/20 text-rose-600 dark:text-rose-500 border border-rose-100 dark:border-rose-900/30 hover:bg-rose-100/75 dark:hover:bg-rose-900/20 rounded-md text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all mt-4 cursor-pointer"
             >
               <Power size={12} />
               Disconnect Server
@@ -158,7 +158,7 @@ export function SettingsView({
         </div>
 
         {/* Cache Settings Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between min-h-[300px]">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between min-h-[300px]">
           <div>
             <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
@@ -173,7 +173,7 @@ export function SettingsView({
 
             <div className="grid grid-cols-2 gap-4 mb-6">
               {/* Library Cache Counter */}
-              <div className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200/50 dark:border-slate-800/80 rounded-xl p-4 flex flex-col gap-1 hover:border-slate-300 dark:hover:border-slate-700/80 transition-all group">
+              <div className="bg-slate-50 dark:bg-slate-955/60 border border-slate-200/50 dark:border-slate-800/80 rounded-md p-4 flex flex-col gap-1 hover:border-slate-300 dark:hover:border-slate-700/80 transition-all group">
                 <div className="flex items-center justify-between">
                   <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Books & Items</span>
                   <BookOpen className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 group-hover:scale-110 transition-transform" />
@@ -185,7 +185,7 @@ export function SettingsView({
               </div>
 
               {/* Sessions Cache Counter */}
-              <div className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200/50 dark:border-slate-800/80 rounded-xl p-4 flex flex-col gap-1 hover:border-slate-300 dark:hover:border-slate-700/80 transition-all group">
+              <div className="bg-slate-50 dark:bg-slate-955/60 border border-slate-200/50 dark:border-slate-800/80 rounded-md p-4 flex flex-col gap-1 hover:border-slate-300 dark:hover:border-slate-700/80 transition-all group">
                 <div className="flex items-center justify-between">
                   <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Sessions</span>
                   <History className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 group-hover:scale-110 transition-transform" />
@@ -205,7 +205,7 @@ export function SettingsView({
 
             {/* Sync Session Data Preference Toggle Switch (Android Native / Direct connection mode only) */}
             {isDirect && (
-              <div className="flex items-center justify-between py-3 px-3 mb-4 bg-slate-50 dark:bg-slate-950 border border-slate-200/50 dark:border-slate-850 rounded-xl transition-all hover:border-slate-300 dark:hover:border-slate-800">
+              <div className="flex items-center justify-between py-3 px-3 mb-4 bg-slate-50 dark:bg-slate-950 border border-slate-200/50 dark:border-slate-800 rounded-md transition-all hover:border-slate-300 dark:hover:border-slate-800">
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Sync Session Data</span>
                   <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">
@@ -216,7 +216,7 @@ export function SettingsView({
                   onClick={() => handleToggleSyncSessions(!syncSessionsEnabled)}
                   className={cn(
                     "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-                    syncSessionsEnabled ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-800"
+                    syncSessionsEnabled ? "bg-indigo-650" : "bg-slate-200 dark:bg-slate-800"
                   )}
                 >
                   <span
@@ -230,7 +230,7 @@ export function SettingsView({
             )}
 
             {/* Last Synced Row */}
-            <div className="flex items-center justify-between text-xs font-semibold py-2.5 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200/50 dark:border-slate-850 rounded-xl">
+            <div className="flex items-center justify-between text-xs font-semibold py-2 px-3 bg-slate-50 dark:bg-slate-955 border border-slate-200/50 dark:border-slate-800 rounded-md">
               <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-sans">
                 <Clock className="w-3.5 h-3.5 text-slate-400" />
                 <span className="text-[9px] uppercase tracking-wider font-extrabold">Last Synchronized</span>
@@ -245,12 +245,12 @@ export function SettingsView({
             onClick={handleSync}
             disabled={isSyncing}
             className={cn(
-              "w-full py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-sm mt-5 cursor-pointer active:scale-98 border",
+              "w-full py-2 rounded-md text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all mt-5 cursor-pointer border",
               isSyncing 
                 ? "bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed" 
                 : isSyncSuccess
-                  ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30"
-                  : "bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white border-transparent shadow-indigo-100 dark:shadow-none"
+                  ? "bg-emerald-50 dark:bg-emerald-955/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30"
+                  : "bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white border-transparent shadow-none"
             )}
           >
             {isSyncing ? (
@@ -272,19 +272,19 @@ export function SettingsView({
           </button>
           
           {isSyncing && syncProgress && (
-            <div className="mt-4 bg-slate-50 dark:bg-slate-950 border border-slate-200/50 dark:border-slate-800/80 rounded-xl p-3.5 shadow-inner animate-fade-in">
+            <div className="mt-4 bg-slate-50 dark:bg-slate-955 border border-slate-200/50 dark:border-slate-800/80 rounded-md p-3.5 animate-fade-in">
               <div className="flex justify-between items-center text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">
                 <span className="truncate pr-3">
                   {syncProgress.type === 'books' 
                     ? `Caching ${syncProgress.libraryName || 'Library'} Books` 
-                    : 'Syncing Listening History'}
+                    : 'Syncing listening history'}
                 </span>
                 <span className="font-mono text-indigo-650 dark:text-indigo-400 shrink-0">{syncProgress.percentage}%</span>
               </div>
               
-              <div className="w-full bg-slate-200 dark:bg-slate-900 rounded-full h-1.5 overflow-hidden mb-2">
+              <div className="w-full bg-slate-250 dark:bg-slate-900 rounded-full h-1 overflow-hidden mb-2">
                 <div 
-                  className="bg-indigo-650 dark:bg-indigo-500 h-full rounded-full transition-all duration-300 ease-out" 
+                  className="bg-indigo-600 dark:bg-indigo-500 h-full rounded-full transition-all duration-300 ease-out" 
                   style={{ width: `${syncProgress.percentage}%` }}
                 />
               </div>
@@ -298,7 +298,7 @@ export function SettingsView({
         </div>
 
         {/* Theme Settings Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between min-h-[300px]">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between min-h-[300px]">
           <div>
             <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
               <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Interface Theme</h4>
@@ -312,31 +312,31 @@ export function SettingsView({
               <button 
                 onClick={() => setDarkMode?.(false)}
                 className={cn(
-                  "flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all cursor-pointer gap-2",
+                  "flex flex-col items-center justify-center p-4 rounded-md border text-center transition-all cursor-pointer gap-2",
                   !darkMode 
-                    ? "border-indigo-600 bg-indigo-50/30 text-indigo-600 dark:text-indigo-400 font-bold shadow-sm shadow-indigo-100/30" 
+                    ? "border-indigo-600 bg-indigo-50/35 text-indigo-600 dark:text-indigo-400 font-bold" 
                     : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400"
                 )}
               >
-                <div className={cn("p-2 rounded-lg", !darkMode ? "bg-indigo-100/80 text-indigo-600" : "bg-slate-100 dark:bg-slate-800 text-slate-500")}>
+                <div className={cn("p-2 rounded-md", !darkMode ? "bg-indigo-100/80 text-indigo-600" : "bg-slate-100 dark:bg-slate-800 text-slate-500")}>
                   <Sun size={20} />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-bold leading-none">Light</span>
-                  <span className="text-[9px] text-slate-400 dark:text-slate-500 mt-1 font-medium">Clean and radiant layout</span>
+                  <span className="text-[9px] text-slate-400 dark:text-slate-500 mt-1 font-medium font-sans">Clean and radiant layout</span>
                 </div>
               </button>
 
               <button 
                 onClick={() => setDarkMode?.(true)}
                 className={cn(
-                  "flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all cursor-pointer gap-2",
+                  "flex flex-col items-center justify-center p-4 rounded-md border text-center transition-all cursor-pointer gap-2",
                   darkMode 
-                    ? "border-indigo-600 dark:border-indigo-500 bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 font-bold shadow-sm" 
+                    ? "border-indigo-600 dark:border-indigo-500 bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 font-bold" 
                     : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400"
                 )}
               >
-                <div className={cn("p-2 rounded-lg", darkMode ? "bg-indigo-950 text-indigo-400" : "bg-slate-100 dark:bg-slate-800 text-slate-500")}>
+                <div className={cn("p-2 rounded-md", darkMode ? "bg-indigo-950 text-indigo-400" : "bg-slate-100 dark:bg-slate-800 text-slate-500")}>
                   <Moon size={20} />
                 </div>
                 <div className="flex flex-col">
@@ -349,7 +349,7 @@ export function SettingsView({
         </div>
 
         {/* Version Info Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between min-h-[300px]">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between min-h-[300px]">
           <div>
             <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
               <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Version & Environment</h4>

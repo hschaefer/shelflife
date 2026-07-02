@@ -230,7 +230,7 @@ export function StatisticsView({
                       }}
                       itemStyle={{ color: isDark ? '#f8fafc' : '#0f172a' }}
                     />
-                    <Line type="monotone" dataKey="hours" stroke="#6366f1" strokeWidth={2} dot={{ r: 3, fill: '#6366f1', strokeWidth: 1.5, stroke: isDark ? '#1e293b' : '#fff' }} activeDot={{ r: 5, strokeWidth: 0 }} />
+                    <Line type="monotone" dataKey="hours" stroke="var(--indigo-600)" strokeWidth={2} dot={{ r: 3, fill: 'var(--indigo-600)', strokeWidth: 1.5, stroke: isDark ? '#1e293b' : '#fff' }} activeDot={{ r: 5, strokeWidth: 0 }} />
                   </LineChart>
                 ) : (
                   <BarChart data={lineChartData}>
@@ -250,7 +250,7 @@ export function StatisticsView({
                       }}
                       itemStyle={{ color: isDark ? '#f8fafc' : '#0f172a' }}
                     />
-                    <Bar dataKey="hours" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="hours" fill="var(--indigo-600)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 )}
               </ResponsiveContainer>
@@ -293,7 +293,7 @@ export function StatisticsView({
                       color: isDark ? '#f8fafc' : '#0f172a'
                     }}
                   />
-                  <Bar dataKey="hours" fill="#6366f1" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="hours" fill="var(--indigo-600)" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

@@ -19,10 +19,10 @@ export function RecentItems({ items, onBookClick }: RecentItemsProps) {
         items.slice(0, 5).map((book) => (
           <div 
             key={book.id} 
-            className="flex gap-3 p-1.5 rounded-xl cursor-pointer group hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+            className="flex gap-3 p-1.5 rounded-md cursor-pointer group hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
             onClick={() => onBookClick?.(book)}
           >
-            <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden flex-shrink-0 shadow-sm border border-slate-200 dark:border-slate-850 relative">
+            <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-md overflow-hidden flex-shrink-0 shadow-sm border border-slate-200 dark:border-slate-800 relative">
               <CoverImage
                 itemId={book.id}
                 title={book.metadata?.title}

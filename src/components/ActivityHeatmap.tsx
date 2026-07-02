@@ -12,18 +12,12 @@ interface ActivityHeatmapProps {
 export function ActivityHeatmap({ data, title, isDark = false }: ActivityHeatmapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const levelStyles = isDark ? [
-    "bg-slate-800", // heatmap-0
-    "bg-indigo-950", // heatmap-1
-    "bg-indigo-700", // heatmap-2
-    "bg-indigo-500", // heatmap-3
-    "bg-indigo-400", // heatmap-4
-  ] : [
-    "bg-slate-100", // heatmap-0
-    "bg-indigo-100", // heatmap-1
-    "bg-indigo-300", // heatmap-2
-    "bg-indigo-500", // heatmap-3
-    "bg-indigo-700", // heatmap-4
+  const levelStyles = [
+    "heatmap-0",
+    "heatmap-1",
+    "heatmap-2",
+    "heatmap-3",
+    "heatmap-4",
   ];
 
   const getLevel = (seconds: number) => {
@@ -82,17 +76,17 @@ export function ActivityHeatmap({ data, title, isDark = false }: ActivityHeatmap
     });
 
     const colorscale: [number, string][] = isDark ? [
-      [0.0, '#1e293b'],   // level 0: slate-800
-      [0.25, '#1e1b4b'],  // level 1: indigo-950
-      [0.5, '#4338ca'],   // level 2: indigo-700
-      [0.75, '#6366f1'],  // level 3: indigo-500
-      [1.0, '#818cf8'],   // level 4: indigo-400
+      [0.0, '#161b22'],   // level 0: GitHub dark grid color
+      [0.25, '#0f358c'],  // level 1: dark mode indigo-900
+      [0.5, '#154ec1'],   // level 2: dark mode indigo-800
+      [0.75, '#1f6feb'],  // level 3: dark mode indigo-500
+      [1.0, '#58a6ff'],   // level 4: dark mode indigo-200
     ] : [
-      [0.0, '#f1f5f9'],   // level 0: slate-100
-      [0.25, '#e0e7ff'],  // level 1: indigo-100
-      [0.5, '#c7d2fe'],   // level 2: indigo-300
-      [0.75, '#6366f1'],  // level 3: indigo-500
-      [1.0, '#4338ca'],   // level 4: indigo-700
+      [0.0, '#ebedf0'],   // level 0: GitHub light grid color
+      [0.25, '#b6e3ff'],  // level 1: light mode indigo-100
+      [0.5, '#54aeff'],   // level 2: light mode indigo-200
+      [0.75, '#218bff'],  // level 3: light mode indigo-300
+      [1.0, '#0969da'],   // level 4: light mode indigo-600
     ];
 
     const plotData = [{
@@ -185,7 +179,7 @@ export function ActivityHeatmap({ data, title, isDark = false }: ActivityHeatmap
         </div>
         
         {/* Dynamic Legend */}
-        <div className="flex gap-3 items-center bg-slate-55 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+        <div className="flex gap-3 items-center px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
           <span className="text-[8px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-tighter">Quiet</span>
           <div className="flex gap-1">
             {levelStyles.map((style, i) => (

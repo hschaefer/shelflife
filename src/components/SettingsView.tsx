@@ -1,4 +1,4 @@
-import { Power, ShieldCheck, Sun, Moon, Database, BookOpen, History, RefreshCw, CheckCircle2, Clock } from "lucide-react";
+import { Power, Sun, Moon, Database, RefreshCw, CheckCircle2, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { api } from "../lib/api";
@@ -91,9 +91,6 @@ export function SettingsView({
   };
 
 
-  const currentExtraHeaders = config?.extraHeaders ?? {};
-  const hasExtraHeaders = Object.keys(currentExtraHeaders).length > 0;
-
   return (
     <div className="flex flex-col gap-6 font-sans max-w-4xl">
       <div className="flex flex-col gap-0.5">
@@ -102,11 +99,11 @@ export function SettingsView({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Connection Profile Section */}
+        {/* Server & App Info Section */}
         <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between min-h-[300px]">
           <div>
             <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Node Connection</h4>
+              <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Server & App Info</h4>
             </div>
             
             <div className="space-y-4 mb-6">
@@ -115,34 +112,9 @@ export function SettingsView({
                 <span className="text-xs font-bold text-slate-900 dark:text-slate-100 break-all">{config?.url || 'Relative Host'}</span>
               </div>
               <div className="space-y-1">
-                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Connection Profile</span>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isNative 
-                    ? 'Direct Client API (Android Native)' 
-                    : 'Server Authenticated Proxy'}
-                </span>
+                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Application Version</span>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{packageJson.version}</span>
               </div>
-
-              
-              {isDirect && hasExtraHeaders && (
-                <div className="space-y-1 pt-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Active Auth Headers</span>
-                    <div className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-[8px] font-extrabold uppercase flex items-center gap-0.5">
-                      <ShieldCheck size={8} />
-                      Active
-                    </div>
-                  </div>
-                  <div className="space-y-1.5 mt-1 bg-slate-50 dark:bg-slate-955 border border-slate-200/60 dark:border-slate-800 rounded-md p-3">
-                    {Object.entries(currentExtraHeaders).map(([key]) => (
-                      <div key={key} className="flex items-center justify-between text-[11px] font-medium font-sans">
-                        <span className="font-semibold text-slate-600 dark:text-slate-400 font-mono break-all pr-2">{key}</span>
-                        <span className="text-slate-400 dark:text-slate-500 font-mono text-[9px] shrink-0">••••••••</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
@@ -171,37 +143,7 @@ export function SettingsView({
               Manage cached audiobooks library data and listening sessions stored locally for offline access.
             </p>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              {/* Library Cache Counter */}
-              <div className="bg-slate-50 dark:bg-slate-955/60 border border-slate-200/50 dark:border-slate-800/80 rounded-md p-4 flex flex-col gap-1 hover:border-slate-300 dark:hover:border-slate-700/80 transition-all group">
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Books & Items</span>
-                  <BookOpen className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 group-hover:scale-110 transition-transform" />
-                </div>
-                <span className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
-                  {localSyncStatus?.itemsCached ?? 0}
-                </span>
-                <span className="text-[8px] text-slate-400 dark:text-slate-500 font-medium">Items in local cache</span>
-              </div>
 
-              {/* Sessions Cache Counter */}
-              <div className="bg-slate-50 dark:bg-slate-955/60 border border-slate-200/50 dark:border-slate-800/80 rounded-md p-4 flex flex-col gap-1 hover:border-slate-300 dark:hover:border-slate-700/80 transition-all group">
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Sessions</span>
-                  <History className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 group-hover:scale-110 transition-transform" />
-                </div>
-                <span className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
-                  {isDirect 
-                    ? (syncSessionsEnabled ? (localSyncStatus?.sessionsCached ?? 0) : "Disabled")
-                    : (localSyncStatus?.sessionsCached ?? 0)}
-                </span>
-                <span className="text-[8px] text-slate-400 dark:text-slate-500 font-medium">
-                  {isDirect 
-                    ? (syncSessionsEnabled ? "Sessions in local cache" : "Direct Connect mode")
-                    : "Sessions in local cache"}
-                </span>
-              </div>
-            </div>
 
             {/* Sync Session Data Preference Toggle Switch (Android Native / Direct connection mode only) */}
             {isDirect && (
@@ -348,33 +290,6 @@ export function SettingsView({
           </div>
         </div>
 
-        {/* Version Info Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between min-h-[300px]">
-          <div>
-            <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Version & Environment</h4>
-            </div>
-            
-            <div className="space-y-4 mb-6">
-              <div className="space-y-1">
-                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Application Version</span>
-                <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{packageJson.version}</span>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Runtime Platform</span>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isNative ? 'Capacitor Native Shell' : 'Modern Browser App'}
-                </span>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Storage Provider</span>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isDirect ? 'IndexedDB Client Storage' : 'SQLite Server Database'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

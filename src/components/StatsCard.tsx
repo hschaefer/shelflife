@@ -17,7 +17,7 @@ export function StatsCard({ title, value, icon: Icon, description, className }: 
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -1, transition: { duration: 0.2 } }}
       className={cn(
-        "bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-shadow hover:shadow-md",
+        "bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm transition-shadow hover:shadow-md",
         className
       )}
     >

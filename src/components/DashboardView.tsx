@@ -346,11 +346,11 @@ export function DashboardView({
                               ) : (
                                 <ChevronDown size={12} className="text-slate-400 shrink-0" />
                               )}
-                              <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center text-[10px] font-bold border border-slate-200 dark:border-slate-700 uppercase shrink-0">
+                              <div className="w-6 h-6 rounded-full bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 flex items-center justify-center text-[10px] font-bold border border-slate-200 dark:border-slate-800 shadow-sm uppercase shrink-0">
                                 {user.username.charAt(0)}
                               </div>
                               <span className="text-[11px] font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">{user.username}</span>
-                              <span className="text-[9px] font-bold text-slate-600 dark:text-slate-305 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/50 dark:border-slate-750 shrink-0">
+                              <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/50 dark:border-slate-800 shrink-0">
                                 {user.uniqueBooks.length} active {user.uniqueBooks.length === 1 ? 'book' : 'books'}
                               </span>
                             </div>

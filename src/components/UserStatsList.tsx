@@ -9,7 +9,7 @@ interface UserStatsListProps {
 export function UserStatsList({ stats }: UserStatsListProps) {
   return (
     <div className="flex flex-col gap-3 h-full">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-grow flex flex-col">
+      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-grow flex flex-col">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[11px]">
             <thead className="bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800">

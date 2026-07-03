@@ -76,7 +76,7 @@ export function ActivityHeatmap({ data, title, isDark = false }: ActivityHeatmap
     });
 
     const colorscale: [number, string][] = isDark ? [
-      [0.0, '#161b22'],   // level 0: GitHub dark grid color
+      [0.0, '#1e293b'],   // level 0: GitHub dark grid color
       [0.25, '#0f358c'],  // level 1: dark mode indigo-900
       [0.5, '#154ec1'],   // level 2: dark mode indigo-800
       [0.75, '#1f6feb'],  // level 3: dark mode indigo-500

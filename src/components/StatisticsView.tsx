@@ -146,7 +146,7 @@ export function StatisticsView({
   return (
     <div className="flex flex-col gap-6">
       {/* Global Header & Timeframe */}
-      <div className="flex items-center justify-between bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-2 px-4">
+      <div className="flex items-center justify-between bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-2 px-4">
         <div className="flex items-center gap-2">
           <Activity size={16} className="text-indigo-600 dark:text-indigo-400" />
           <h2 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight">Global Analytics</h2>
@@ -176,7 +176,7 @@ export function StatisticsView({
       {/* 2. Listening Trends */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Listening History Card */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col justify-between h-[360px]">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col justify-between h-[360px]">
           <div className="flex items-center justify-between mb-4 px-2 shrink-0">
             <div>
               <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight">Listening History</h3>
@@ -202,7 +202,7 @@ export function StatisticsView({
             </div>
           </div>
           {dashboardLoading ? (
-            <div className="h-[240px] w-full flex flex-col justify-end gap-4 p-4 bg-slate-50/50 dark:bg-slate-800/10 rounded-xl border border-slate-100 dark:border-slate-800 animate-pulse relative overflow-hidden select-none">
+            <div className="h-[240px] w-full flex flex-col justify-end gap-4 p-4 bg-slate-50/50 dark:bg-slate-800/10 rounded-md border border-slate-100 dark:border-slate-800 animate-pulse relative overflow-hidden select-none">
               <div className="absolute inset-0 flex items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-[1px]">
                 <div className="flex flex-col items-center gap-2">
                   <Activity size={24} className="text-indigo-500 dark:text-indigo-400 animate-spin" style={{ animationDuration: '3s' }} />
@@ -259,7 +259,7 @@ export function StatisticsView({
         </div>
 
         {/* Top Activity Hours Card */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col justify-between h-[360px]">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col justify-between h-[360px]">
           <div className="flex items-center justify-between mb-4 px-2 shrink-0">
             <div>
               <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight">Top Activity Hours</h3>
@@ -269,7 +269,7 @@ export function StatisticsView({
             </div>
           </div>
           {dashboardLoading ? (
-            <div className="h-[240px] w-full flex flex-col justify-end gap-4 p-4 bg-slate-50/50 dark:bg-slate-800/10 rounded-xl border border-slate-100 dark:border-slate-800 animate-pulse relative overflow-hidden select-none">
+            <div className="h-[240px] w-full flex flex-col justify-end gap-4 p-4 bg-slate-50/50 dark:bg-slate-800/10 rounded-md border border-slate-100 dark:border-slate-800 animate-pulse relative overflow-hidden select-none">
               <div className="absolute inset-0 flex items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-[1px]">
                 <Activity size={24} className="text-indigo-500 dark:text-indigo-400 animate-spin" style={{ animationDuration: '3s' }} />
               </div>
@@ -304,7 +304,7 @@ export function StatisticsView({
       {/* 3. Content Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Top Books Card */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col h-[360px]">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col h-[360px]">
           <div className="flex items-center justify-between mb-4 px-2 shrink-0">
             <div>
               <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight">Top Books</h3>
@@ -369,7 +369,7 @@ export function StatisticsView({
                         setSelectedBookForDetails(fullBook as Book);
                       }
                     }}
-                    className="flex flex-col gap-1.5 p-2 rounded-xl border border-slate-50 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 hover:border-slate-100 dark:hover:border-slate-800 transition-all group select-none cursor-pointer"
+                    className="flex flex-col gap-1.5 p-2 rounded-md border border-slate-50 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 hover:border-slate-100 dark:hover:border-slate-800 transition-all group select-none cursor-pointer"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 min-w-0 pr-2">
@@ -415,7 +415,7 @@ export function StatisticsView({
           </div>
         </div>
         {/* Most Listened Authors Card */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col h-[360px]">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col h-[360px]">
           <div className="flex items-center justify-between mb-4 px-2 shrink-0">
             <div>
               <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight">Top Authors</h3>
@@ -440,7 +440,7 @@ export function StatisticsView({
                 const initials = author.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase() || "??";
                 
                 return (
-                  <div key={author.name} className="flex flex-col gap-1.5 p-2 rounded-xl border border-slate-50 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 hover:border-slate-100 dark:hover:border-slate-800 transition-all group select-none">
+                  <div key={author.name} className="flex flex-col gap-1.5 p-2 rounded-md border border-slate-50 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 hover:border-slate-100 dark:hover:border-slate-800 transition-all group select-none">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 text-white flex items-center justify-center text-[10px] font-black shadow-sm shrink-0 group-hover:scale-105 transition-transform">
@@ -473,7 +473,7 @@ export function StatisticsView({
 
       {/* 4. User Leaderboards & Engagement */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col h-[360px]">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col h-[360px]">
           <div className="flex items-center justify-between mb-4 px-2 shrink-0">
             <div>
               <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight">Top Listeners</h3>
@@ -499,7 +499,7 @@ export function StatisticsView({
               <div 
                 key={user.userId} 
                 onClick={() => onOpenUser && onOpenUser(user.userId)}
-                className="flex items-center justify-between p-2 rounded-xl border border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
+                className="flex items-center justify-between p-2 rounded-md border border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-sm ${topListenersMetric === 'time' ? 'bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 text-slate-700 dark:text-slate-200' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'}`}>
@@ -535,7 +535,7 @@ export function StatisticsView({
         </div>
 
         {/* Most Listened Genres Card */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col h-[360px]">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col h-[360px]">
           <div className="flex items-center justify-between mb-4 px-2 shrink-0">
             <div>
               <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight">Top Genres</h3>
@@ -560,7 +560,7 @@ export function StatisticsView({
                 const style = getGenreStyle(genre.name);
                 
                 return (
-                  <div key={genre.name} className="flex flex-col gap-1.5 p-2 rounded-xl border border-slate-50 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 hover:border-slate-100 dark:hover:border-slate-800 transition-all group select-none">
+                  <div key={genre.name} className="flex flex-col gap-1.5 p-2 rounded-md border border-slate-50 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 hover:border-slate-100 dark:hover:border-slate-800 transition-all group select-none">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className={cn("w-8 h-8 rounded-full bg-gradient-to-tr text-white flex items-center justify-center shadow-sm shrink-0 group-hover:scale-105 transition-transform", style.bg)}>

@@ -875,7 +875,7 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false, sy
                 onClick={() => setCurrentPage(1)}
                 disabled={currentPage === 1}
                 className={cn(
-                  "p-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                  "p-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
                 )}
                 title="First Page"
               >
@@ -887,7 +887,7 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false, sy
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
                 className={cn(
-                  "p-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-955 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                  "p-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
                 )}
                 title="Previous Page"
               >
@@ -906,7 +906,7 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false, sy
                       ? "bg-indigo-600 dark:bg-indigo-600 text-white shadow-sm"
                       : p === '...'
                       ? "text-slate-400 dark:text-slate-600 cursor-default"
-                      : "border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-955 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-350"
+                      : "border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-200"
                   )}
                 >
                   {p}
@@ -918,7 +918,7 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false, sy
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
                 className={cn(
-                  "p-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                  "p-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
                 )}
                 title="Next Page"
               >
@@ -930,7 +930,7 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false, sy
                 onClick={() => setCurrentPage(totalPages)}
                 disabled={currentPage === totalPages}
                 className={cn(
-                  "p-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                  "p-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
                 )}
                 title="Last Page"
               >

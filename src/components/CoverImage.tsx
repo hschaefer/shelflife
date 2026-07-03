@@ -56,7 +56,7 @@ export function CoverImage({ itemId, title, className }: CoverImageProps) {
     return (
       <div
         className={cn(
-          "bg-slate-200 animate-pulse flex items-center justify-center rounded-2xl w-full h-full border border-slate-200/50 shadow-inner",
+          "bg-slate-200 animate-pulse flex items-center justify-center rounded-md w-full h-full border border-slate-200/50 shadow-inner",
           className
         )}
       >
@@ -69,7 +69,7 @@ export function CoverImage({ itemId, title, className }: CoverImageProps) {
     return (
       <div
         className={cn(
-          "bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col items-center justify-center p-3 text-center border border-slate-300/40 shadow-inner rounded-2xl w-full h-full",
+          "bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col items-center justify-center p-3 text-center border border-slate-300/40 shadow-inner rounded-md w-full h-full",
           className
         )}
       >

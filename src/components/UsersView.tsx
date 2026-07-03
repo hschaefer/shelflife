@@ -264,16 +264,16 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                   <div className="flex items-center gap-2 text-left">
                     <div className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center border",
-                      isActive ? "bg-white/20 border-white/20" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm"
+                      isActive ? "bg-white shadow-sm border-slate-300 dark:bg-white/20 dark:border-white/20" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm"
                     )}>
-                      <UserIcon size={14} className={isActive ? "text-white" : "text-slate-600 dark:text-slate-400"} />
+                      <UserIcon size={14} className={isActive ? "text-slate-700 dark:text-white" : "text-slate-600 dark:text-slate-400"} />
                     </div>
                     <div>
-                      <p className={cn("text-[11px] font-bold uppercase tracking-tight", isActive ? "text-white" : "text-slate-900 dark:text-slate-100")}>
+                      <p className={cn("text-[11px] font-bold uppercase tracking-tight", isActive ? "text-slate-900 dark:text-white" : "text-slate-900 dark:text-slate-100")}>
                         {user.username}
                       </p>
                       {user.type === 'admin' && (
-                        <p className={cn("text-[9px] font-medium", isActive ? "text-white/60" : "text-slate-400 dark:text-slate-500")}>
+                        <p className={cn("text-[9px] font-medium", isActive ? "text-slate-500 dark:text-white/60" : "text-slate-400 dark:text-slate-500")}>
                           System Admin
                         </p>
                       )}
@@ -463,7 +463,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {/* View Mode Selector */}
-                  <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200/50 dark:border-slate-700/50">
+                  <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md">
                     {[
                       { label: "Recent", value: "recent" },
                       { label: "All Books", value: "all-books" },
@@ -473,7 +473,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                         key={mode.value}
                         onClick={() => setViewMode(mode.value as ViewMode)}
                         className={cn(
-                          "px-2 py-1 text-[9px] font-bold uppercase transition-all cursor-pointer",
+                          "px-2 py-1 text-[9px] font-bold uppercase rounded-md transition-all cursor-pointer",
                           viewMode === mode.value 
                             ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' 
                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
@@ -486,7 +486,7 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
 
                   {/* Progress Filter (only shown when viewMode is 'all-books') */}
                   {viewMode === 'all-books' && (
-                    <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200/50 dark:border-slate-700/50 animate-pulse-subtle">
+                    <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md animate-pulse-subtle">
                       {[
                         { label: "All Status", value: "all" },
                         { label: "Completed (>99%)", value: "completed" },
@@ -496,9 +496,9 @@ export function UsersView({ users, sessions, userStats, books, sessionsLoading, 
                           key={filter.value}
                           onClick={() => setProgressFilter(filter.value as ProgressFilter)}
                           className={cn(
-                            "px-2 py-1 text-[9px] font-bold uppercase transition-all cursor-pointer",
+                            "px-2 py-1 text-[9px] font-bold uppercase rounded-md transition-all cursor-pointer",
                             progressFilter === filter.value 
-                              ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-sm' 
+                              ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' 
                               : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                           )}
                         >

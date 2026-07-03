@@ -1,4 +1,4 @@
-import { Power, Sun, Moon, Database, RefreshCw, CheckCircle2, Clock } from "lucide-react";
+import { Power, Sun, Moon, Database, RefreshCw, CheckCircle2, Clock, Book, Headphones } from "lucide-react";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { api } from "../lib/api";
@@ -171,15 +171,39 @@ export function SettingsView({
               </div>
             )}
 
-            {/* Last Synced Row */}
-            <div className="flex items-center justify-between text-xs font-semibold py-2 px-3 bg-slate-50 dark:bg-slate-955 border border-slate-200/50 dark:border-slate-800 rounded-md">
-              <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-sans">
-                <Clock className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-[9px] uppercase tracking-wider font-extrabold">Last Synchronized</span>
+            <div className="flex flex-col gap-2">
+              {/* Cached Books */}
+              <div className="flex items-center justify-between text-xs font-semibold py-2 px-3 bg-slate-50 dark:bg-slate-955 border border-slate-200/50 dark:border-slate-800 rounded-md">
+                <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-sans">
+                  <Book className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-[9px] uppercase tracking-wider font-extrabold">Cached Books</span>
+                </div>
+                <span className="text-slate-800 dark:text-slate-200 font-mono text-[11px] font-bold">
+                  {localSyncStatus?.itemsCached || 0}
+                </span>
               </div>
-              <span className="text-slate-800 dark:text-slate-200 font-mono text-[11px] font-bold">
-                {formatSyncTime(localSyncStatus?.lastSync)}
-              </span>
+
+              {/* Cached Sessions */}
+              <div className="flex items-center justify-between text-xs font-semibold py-2 px-3 bg-slate-50 dark:bg-slate-955 border border-slate-200/50 dark:border-slate-800 rounded-md">
+                <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-sans">
+                  <Headphones className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-[9px] uppercase tracking-wider font-extrabold">Cached Sessions</span>
+                </div>
+                <span className="text-slate-800 dark:text-slate-200 font-mono text-[11px] font-bold">
+                  {localSyncStatus?.sessionsCached || 0}
+                </span>
+              </div>
+
+              {/* Last Synced Row */}
+              <div className="flex items-center justify-between text-xs font-semibold py-2 px-3 bg-slate-50 dark:bg-slate-955 border border-slate-200/50 dark:border-slate-800 rounded-md">
+                <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-sans">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-[9px] uppercase tracking-wider font-extrabold">Last Synchronized</span>
+                </div>
+                <span className="text-slate-800 dark:text-slate-200 font-mono text-[11px] font-bold">
+                  {formatSyncTime(localSyncStatus?.lastSync)}
+                </span>
+              </div>
             </div>
           </div>
 

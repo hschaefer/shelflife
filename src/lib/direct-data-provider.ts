@@ -507,7 +507,7 @@ export class DirectDataProvider implements DataProvider {
       .slice(0, 5);
 
     // 3. Listening History Chart Data (grouped by MM/dd)
-    const activity: Record<string, number> = {};
+    const activity: Record<string, { hours: number; users: Set<string> }> = {};
     filteredSessions.forEach(session => {
       const date = new Date(session.startedAt);
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -515,11 +515,22 @@ export class DirectDataProvider implements DataProvider {
       const dateStr = `${month}/${day}`;
       
       const listeningTime = (session.timeListening || session.duration || 0) / 3600;
-      activity[dateStr] = (activity[dateStr] || 0) + listeningTime;
+      
+      if (!activity[dateStr]) {
+        activity[dateStr] = { hours: 0, users: new Set() };
+      }
+      activity[dateStr].hours += listeningTime;
+      if (session.userId) {
+        activity[dateStr].users.add(session.userId);
+      }
     });
 
     const lineChartData = Object.entries(activity)
-      .map(([date, hours]) => ({ date, hours: parseFloat(hours.toFixed(1)) }))
+      .map(([date, data]) => ({ 
+        date, 
+        hours: parseFloat(data.hours.toFixed(1)),
+        activeUsers: data.users.size
+      }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
     // 4. Hourly Activity (Peak Hours) Chart Data (last 14 days)

@@ -49,6 +49,7 @@ export function DashboardView({
 }: DashboardViewProps) {
   const isAndroid = Capacitor.getPlatform() === 'android';
   const [chartType, setChartType] = useState<'line' | 'bar'>('bar');
+  const [historyMetric, setHistoryMetric] = useState<'hours' | 'users'>('hours');
   const timeframe = dashboardTimeframe;
   const setTimeframe = onTimeframeChange;
   const [recentActivityWindow, setRecentActivityWindow] = useState<'1' | '7'>('7');
@@ -515,10 +516,24 @@ export function DashboardView({
             <div>
               <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight">30 Days Listening History</h3>
               <p className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-semibold mt-0.5">
-                Global hours consumed
+                {historyMetric === 'hours' ? 'Global hours consumed' : 'Active users'}
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md">
+                <button 
+                  onClick={() => setHistoryMetric('hours')}
+                  className={`px-2 py-1 text-[9px] font-bold uppercase rounded-md transition-all cursor-pointer ${historyMetric === 'hours' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'}`}
+                >
+                  Hours
+                </button>
+                <button 
+                  onClick={() => setHistoryMetric('users')}
+                  className={`px-2 py-1 text-[9px] font-bold uppercase rounded-md transition-all cursor-pointer ${historyMetric === 'users' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'}`}
+                >
+                  Users
+                </button>
+              </div>
               <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md">
                 <button 
                   onClick={() => setChartType('line')}
@@ -564,7 +579,7 @@ export function DashboardView({
                       }}
                       itemStyle={{ color: 'var(--text-primary)' }}
                     />
-                    <Line type="monotone" dataKey="hours" stroke="var(--indigo-600)" strokeWidth={2} dot={{ r: 3, fill: 'var(--indigo-600)', strokeWidth: 1.5, stroke: isDark ? '#161b22' : '#ffffff' }} activeDot={{ r: 5, strokeWidth: 0 }} />
+                    <Line type="monotone" dataKey={historyMetric === 'hours' ? 'hours' : 'activeUsers'} stroke="var(--indigo-600)" strokeWidth={2} dot={{ r: 3, fill: 'var(--indigo-600)', strokeWidth: 1.5, stroke: isDark ? '#161b22' : '#ffffff' }} activeDot={{ r: 5, strokeWidth: 0 }} />
                   </LineChart>
                 ) : (
                   <BarChart data={lineChartData}>
@@ -584,7 +599,7 @@ export function DashboardView({
                       }}
                       itemStyle={{ color: 'var(--text-primary)' }}
                     />
-                    <Bar dataKey="hours" fill="var(--indigo-600)" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey={historyMetric === 'hours' ? 'hours' : 'activeUsers'} fill="var(--indigo-600)" radius={[2, 2, 0, 0]} />
                   </BarChart>
                 )}
               </ResponsiveContainer>

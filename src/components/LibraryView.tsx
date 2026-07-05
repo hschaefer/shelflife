@@ -367,8 +367,8 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false, sy
           if (isScanActive && elapsed < maxDuration) {
             setTimeout(pollScanStatus, pollInterval);
           } else {
-            // Scan finished or timed out - trigger targeted incremental sync
-            await api.triggerSync(libId, false).catch(err => {
+            // Scan finished or timed out - trigger targeted full sync to pick up metadata changes
+            await api.triggerSync(libId, true).catch(err => {
               console.error("Failed to sync library cache:", err);
             });
             // Do one final fetch of updated items and stop spinner
@@ -378,7 +378,7 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false, sy
         } catch (err) {
           console.error("Error during scan polling:", err);
           // Fallback: trigger cache sync and reload
-          await api.triggerSync(libId, false).catch(() => null);
+          await api.triggerSync(libId, true).catch(() => null);
           await fetchLibraryBooks();
           setIsRescanning(false);
         }
@@ -395,8 +395,12 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false, sy
 
   const handleMatchSuccess = (id: string) => {
     setMatchStatus(prev => ({ ...prev, [id]: 'success' }));
-    setTimeout(() => {
+    setTimeout(async () => {
       setMatchStatus(prev => ({ ...prev, [id]: null }));
+      const libId = selectedLibraryId || (libraries.length > 0 ? libraries[0].id : "");
+      if (libId) {
+        await api.triggerSync(libId, true).catch(console.error);
+      }
       fetchLibraryBooks();
     }, 2000);
   };

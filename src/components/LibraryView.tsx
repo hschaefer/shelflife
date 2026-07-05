@@ -456,7 +456,7 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false, sy
           <div className="block lg:hidden bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
             <div className="grid grid-cols-2 gap-x-4 gap-y-4">
               {[
-                { label: "Total Indexed", value: totalBooks, icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/30" },
+                { label: "Total Indexed", value: libraryStats?.totalBooks ?? libraryStats?.totalItems ?? totalBooks, icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/30" },
                 { label: "Library Size", value: formatBytes(libraryStats?.totalSize), icon: Database, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/30" },
                 { label: "Play Duration", value: formatDuration(libraryStats?.totalDuration), icon: Clock, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
                 { label: "Unique Authors", value: libraryStats?.totalAuthors || 0, icon: UserIcon, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/30" },
@@ -477,7 +477,7 @@ export function LibraryView({ books: initialBooks, libraries, isDark = false, sy
           {/* DESKTOP VIEW ONLY: Stacked Vertical Cards */}
           <div className="hidden lg:flex flex-col gap-3 h-full">
             {[
-              { label: "Total Indexed", value: totalBooks, icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/30" },
+              { label: "Total Indexed", value: libraryStats?.totalBooks ?? libraryStats?.totalItems ?? totalBooks, icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/30" },
               { label: "Library Size", value: formatBytes(libraryStats?.totalSize), icon: Database, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/30" },
               { label: "Play Duration", value: formatDuration(libraryStats?.totalDuration), icon: Clock, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
               { label: "Unique Authors", value: libraryStats?.totalAuthors || 0, icon: UserIcon, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/30" },

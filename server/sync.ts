@@ -36,7 +36,7 @@ function getAbsUrl(endpoint: string): string {
 /**
  * Transform deep ABS item response to flat database columns
  */
-function transformItemToDb(item: any) {
+function transformItemToDb(item: any, fallbackLibraryId: string) {
   const media = item.media || {};
   const metadata = media.metadata || item.metadata || {};
   
@@ -52,7 +52,7 @@ function transformItemToDb(item: any) {
 
   return {
     id: item.id,
-    library_id: item.libraryId || '',
+    library_id: item.libraryId || fallbackLibraryId,
     title: metadata.title || 'Unknown Title',
     author_name: authorName,
     narrator_name: narratorName,
@@ -162,6 +162,8 @@ export async function syncLibraryFull(libraryId: string): Promise<void> {
       params: {
         limit,
         page,
+        sort: 'addedAt',
+        desc: 1,
         expanded: 1
       }
     });
@@ -174,7 +176,7 @@ export async function syncLibraryFull(libraryId: string): Promise<void> {
 
     const transformedItems = results.map((item: any) => {
       fetchedIds.add(item.id);
-      const transformed = transformItemToDb(item);
+      const transformed = transformItemToDb(item, libraryId);
       
       const change = checkItemChanges(db, transformed);
       if (change.isNew) {

@@ -162,12 +162,12 @@ export default function App() {
       
       setError(null);
 
-      // In proxy mode, trigger and await the upstream sync from Audiobookshelf before fetching fresh data
-      if (!Capacitor.isNativePlatform() && !isInitial) {
+      // Trigger and await the sync (upstream for proxy mode, or local cache for native mode) before fetching fresh data
+      if (!isInitial) {
         try {
           await api.triggerSync(undefined, false, true);
         } catch (syncErr) {
-          console.warn("Failed to trigger upstream sync in proxy mode:", syncErr);
+          console.warn("Failed to trigger sync:", syncErr);
         }
       }
 

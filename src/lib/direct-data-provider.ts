@@ -731,7 +731,7 @@ export class DirectDataProvider implements DataProvider {
 
     while (hasMore) {
       const response = await this.client.get(`/libraries/${libraryId}/items`, {
-        params: { limit, page, expanded: 1 }
+        params: { limit, page, sort: 'addedAt', desc: 1, expanded: 1 }
       });
 
       const results = response.data?.results || [];

@@ -1,12 +1,13 @@
 import { useState, useMemo } from "react";
 import { 
-  PieChart, Activity, Clock, BookOpen, Users, 
-  Smartphone, PenTool, Compass, Tags, CheckCircle2
+  PieChart as PieChartIcon, Activity, Clock, BookOpen, Users, 
+  Smartphone, PenTool, Compass, Tags, CheckCircle2, List
 } from "lucide-react";
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   LineChart, Line, BarChart, Bar, RadarChart, PolarGrid, 
-  PolarAngleAxis, PolarRadiusAxis, Radar
+  PolarAngleAxis, PolarRadiusAxis, Radar,
+  PieChart, Pie, Cell, Legend
 } from "recharts";
 import { Book, Library, Session, UserStats } from "../types";
 import { formatDuration, formatTotalTime, cn } from "../lib/utils";
@@ -70,7 +71,9 @@ export function StatisticsView({
   const sortedUsersByCompletion = [...userStats].sort((a, b) => (b.completionRate || 0) - (a.completionRate || 0)).slice(0, 5);
 
   const [topListenersMetric, setTopListenersMetric] = useState<'time' | 'completion'>('time');
+  const [topListenersView, setTopListenersView] = useState<'list' | 'pie'>('list');
   const [topBooksMetric, setTopBooksMetric] = useState<'time' | 'sessions' | 'listeners'>('time');
+  const COLORS = ['#4f46e5', '#ec4899', '#f59e0b', '#10b981', '#6366f1', '#f43f5e', '#8b5cf6'];
 
   const topBooks = useMemo(() => {
     if (!sessions.length) return [];
@@ -494,60 +497,127 @@ export function StatisticsView({
               <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight">Top Listeners</h3>
               <p className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-semibold mt-0.5">Leaderboard</p>
             </div>
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
-              {[
-                { label: 'Time', value: 'time' },
-                { label: 'Completion', value: 'completion' }
-              ].map((metric) => (
+            <div className="flex items-center gap-2">
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
+                {[
+                  { label: 'Time', value: 'time' },
+                  { label: 'Completion', value: 'completion' }
+                ].map((metric) => (
+                  <button
+                    key={metric.value}
+                    onClick={() => setTopListenersMetric(metric.value as any)}
+                    className={`px-3 py-1 text-[9px] font-bold uppercase rounded-md transition-all cursor-pointer ${topListenersMetric === metric.value ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'}`}
+                  >
+                    {metric.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
                 <button
-                  key={metric.value}
-                  onClick={() => setTopListenersMetric(metric.value as any)}
-                  className={`px-3 py-1 text-[9px] font-bold uppercase rounded-md transition-all cursor-pointer ${topListenersMetric === metric.value ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'}`}
+                  onClick={() => setTopListenersView('list')}
+                  className={`p-1 rounded-md transition-all cursor-pointer ${topListenersView === 'list' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'}`}
                 >
-                  {metric.label}
+                  <List size={14} />
                 </button>
-              ))}
+                <button
+                  onClick={() => {
+                    setTopListenersView('pie');
+                    setTopListenersMetric('time');
+                  }}
+                  className={`p-1 rounded-md transition-all cursor-pointer ${topListenersView === 'pie' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'}`}
+                >
+                  <PieChartIcon size={14} />
+                </button>
+              </div>
             </div>
           </div>
           <div className="flex-grow overflow-y-auto no-scrollbar pr-1 flex flex-col gap-3">
-            {(topListenersMetric === 'time' ? sortedUsersByTime : sortedUsersByCompletion).map((user, idx) => (
-              <div 
-                key={user.userId} 
-                onClick={() => onOpenUser && onOpenUser(user.userId)}
-                className="flex items-center justify-between p-2 rounded-md border border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-sm ${topListenersMetric === 'time' ? 'bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 text-slate-700 dark:text-slate-200' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'}`}>
-                    {topListenersMetric === 'time' ? (idx + 1) : <CheckCircle2 size={16} />}
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{user.username}</p>
-                    {topListenersMetric === 'time' && (
-                      <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium">Avg Daily: {formatDuration(user.avgDaily || 0)}</p>
-                    )}
-                  </div>
-                </div>
-                {topListenersMetric === 'time' ? (
-                  <div className="text-right">
-                    <p className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">{formatTotalTime(user.totalTime)}</p>
-                  </div>
-                ) : (
+            {topListenersView === 'list' ? (
+              (topListenersMetric === 'time' ? sortedUsersByTime : sortedUsersByCompletion).map((user, idx) => (
+                <div 
+                  key={user.userId} 
+                  onClick={() => onOpenUser && onOpenUser(user.userId)}
+                  className="flex items-center justify-between p-2 rounded-md border border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
+                >
                   <div className="flex items-center gap-3">
-                    <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-emerald-500 rounded-full"
-                        style={{ width: `${Math.min(user.completionRate || 0, 100)}%` }}
-                      />
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-sm ${topListenersMetric === 'time' ? 'bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 text-slate-700 dark:text-slate-200' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'}`}>
+                      {topListenersMetric === 'time' ? (idx + 1) : <CheckCircle2 size={16} />}
                     </div>
-                    <p className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 w-8 text-right">
-                      {Math.round(user.completionRate || 0)}%
-                    </p>
+                    <div>
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{user.username}</p>
+                      {topListenersMetric === 'time' && (
+                        <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium">Avg Daily: {formatDuration(user.avgDaily || 0)}</p>
+                      )}
+                    </div>
                   </div>
-                )}
+                  {topListenersMetric === 'time' ? (
+                    <div className="text-right">
+                      <p className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">{formatTotalTime(user.totalTime)}</p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-emerald-500 rounded-full"
+                          style={{ width: `${Math.min(user.completionRate || 0, 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 w-8 text-right">
+                        {Math.round(user.completionRate || 0)}%
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="h-full w-full min-h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={sortedUsersByTime.map(u => ({ name: u.username, value: u.totalTime }))}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={2}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {sortedUsersByTime.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value: number) => formatTotalTime(value)}
+                      contentStyle={{ 
+                        backgroundColor: isDark ? '#1e293b' : '#fff', 
+                        borderRadius: '8px', 
+                        border: isDark ? '1px solid #334155' : 'none', 
+                        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                        fontSize: '10px',
+                        fontWeight: '600',
+                        color: isDark ? '#f8fafc' : '#0f172a'
+                      }}
+                      itemStyle={{ color: isDark ? '#f8fafc' : '#0f172a' }}
+                    />
+                    <Legend 
+                      iconType="circle" 
+                      layout="horizontal" 
+                      verticalAlign="bottom" 
+                      align="center"
+                      wrapperStyle={{ 
+                        fontSize: '10px', 
+                        paddingTop: '10px',
+                        color: isDark ? '#f8fafc' : '#0f172a'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            ))}
+            )}
           </div>
         </div>
+
 
         {/* Most Listened Genres Card */}
         <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-4 flex flex-col h-[360px]">
